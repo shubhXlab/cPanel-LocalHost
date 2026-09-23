@@ -252,7 +252,5 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 👨‍💻 Author
 
-**Shubham Ramjiyani** ([@shubhXlab](https://github.com/shubhXlab))  
-*Bachelor of Business Administration (Computer Applications)*  
-Ashoka Center for Business and Computer Studies (ACBCS), Nashik  
-Academic Year: 2025 – 2026
+**Shubham Ramjiyani** ([@shubhXlab](https://github.com/shubhXlab))
+
