@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 8: User Interface Walkthrough & System Screenshots - Shubham Ramjiyani | Ashoka College</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f172a;
+      font-family: 'Inter', sans-serif;
+      color: #1e293b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 20px 60px 20px;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.48;
+    }
+    .action-bar {
+      position: sticky;
+      top: 20px;
+      z-index: 9999;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 50px;
+      padding: 8px 18px;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 15px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-print { background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; }
+    .btn-nav { background: rgba(255, 255, 255, 0.08); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.15); }
+    .btn-nav:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+    .action-tip { font-size: 11px; color: #94a3b8; margin-left: 6px; }
+
+    .pages-wrapper { display: flex; flex-direction: column; gap: 30px; }
+    .a4-page {
+      width: 210mm;
+      height: 297mm;
+      position: relative;
+      background: #ffffff;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+      border-radius: 2px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12mm 16mm 11mm 16mm;
+      page-break-after: always;
+    }
+    .border-frame {
+      position: absolute; top: 7mm; left: 7mm; right: 7mm; bottom: 7mm;
+      border: 1.5px solid #0f2b48; pointer-events: none;
+    }
+    .border-frame-inner {
+      position: absolute; top: 8.5mm; left: 8.5mm; right: 8.5mm; bottom: 8.5mm;
+      border: 0.6px solid #c99738; pointer-events: none;
+    }
+    .page-content {
+      position: relative; z-index: 1; height: 100%;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .running-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px;
+      font-size: 9px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px;
+    }
+    .running-footer {
+      border-top: 1px solid #cbd5e1; padding-top: 5px; margin-top: 6px;
+      display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #64748b;
+    }
+    .footer-page-indicator {
+      font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #0c2340;
+      background: #f1f5f9; padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0;
+    }
+    .chapter-hero {
+      border-bottom: 2px solid #0c2340; padding-bottom: 5px; margin-bottom: 9px;
+      display: flex; justify-content: space-between; align-items: flex-end;
+    }
+    .chapter-number-badge {
+      font-family: 'Cinzel', serif; font-size: 10.5px; font-weight: 800;
+      letter-spacing: 1.5px; color: #c99738; text-transform: uppercase; margin-bottom: 1px;
+    }
+    .chapter-main-title {
+      font-family: 'Cinzel', serif; font-size: 18.5px; font-weight: 800;
+      color: #0c2340; letter-spacing: 0.8px; text-transform: uppercase; line-height: 1.2;
+    }
+    .chapter-tagline { font-size: 9px; color: #64748b; font-style: italic; }
+    .section-title {
+      font-size: 12px; font-weight: 800; color: #0c2340; letter-spacing: 0.2px;
+      margin: 8px 0 4px 0; display: flex; align-items: center; gap: 5px;
+    }
+    .section-num { color: #0284c7; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
+    .text-p { font-size: 9.8px; line-height: 1.48; color: #334155; text-align: justify; margin-bottom: 6px; }
+    .callout-box {
+      background: #f8fafc; border-left: 3px solid #0284c7; border-radius: 4px;
+      padding: 6px 9px; margin: 6px 0; font-size: 9.5px; color: #334155; line-height: 1.45;
+    }
+    .callout-box.gold { border-left-color: #c99738; background: #fdfaf3; }
+    .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
+    .grid-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 6px 0; }
+    .card-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 5px; padding: 7px 9px; font-size: 9.4px; }
+    .card-box-header { font-weight: 700; font-size: 10px; color: #0c2340; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+    .card-box-header i { color: #0284c7; }
+    .custom-bullets { list-style: none; margin: 4px 0; padding: 0; }
+    .custom-bullets li {
+      font-size: 9.6px; line-height: 1.42; color: #334155; margin-bottom: 3.5px;
+      display: flex; align-items: flex-start; gap: 5px;
+    }
+    .custom-bullets li i { color: #0284c7; margin-top: 3px; font-size: 8px; flex-shrink: 0; }
+    .code-block {
+      background: #0f172a; color: #f8fafc; font-family: 'JetBrains Mono', monospace;
+      font-size: 8.8px; padding: 6px 8px; border-radius: 4px; overflow-x: auto; margin: 5px 0; line-height: 1.35;
+    }
+    .badge { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+    .badge-primary { background: #e0f2fe; color: #0284c7; }
+    .badge-success { background: #dcfce7; color: #16a34a; }
+    .badge-warning { background: #fef3c7; color: #d97706; }
+
+    @page { size: A4 portrait; margin: 0; }
+    @media print {
+      body { background: none !important; padding: 0 !important; margin: 0 !important; display: block !important; }
+      .no-print { display: none !important; }
+      .pages-wrapper { gap: 0 !important; }
+      .a4-page {
+        width: 210mm !important; height: 297mm !important; margin: 0 !important;
+        box-shadow: none !important; border-radius: 0 !important;
+        page-break-inside: avoid !important; page-break-after: always !important;
+        -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside class="action-bar no-print">
+    <button class="action-btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> Print / Save as PDF</button>
+    <a href="/chapter7.html" class="action-btn btn-nav"><i class="fa-solid fa-arrow-left"></i> Chapter 7</a>
+    <a href="/index_page.html" class="action-btn btn-nav"><i class="fa-solid fa-list-ol"></i> Index</a>
+    <a href="/chapter9.html" class="action-btn btn-nav">Chapter 9 <i class="fa-solid fa-arrow-right"></i></a>
+    <a href="/index.html" class="action-btn btn-nav"><i class="fa-solid fa-house"></i> cPanel</a>
+  </aside>
+
+  <div class="pages-wrapper">
+    <!-- PAGE 1 -->
+    <main class="a4-page">
+      <div class="border-frame"></div>
+      <div class="border-frame-inner"></div>
+      <div class="page-content">
+        <div class="running-header">
+          <span style="font-weight:700; color:#0c2340;">Ashoka Center for Business and Computer Studies</span>
+          <span>BBA(CA) Project Documentation &bull; Chapter 8</span>
+        </div>
+        <div>
+          <div class="chapter-hero">
+            <div>
+              <div class="chapter-number-badge">Chapter 08</div>
+              <h1 class="chapter-main-title">User Interface Walkthrough & System Screenshots</h1>
+            </div>
+            <div class="chapter-tagline">Visual Documentation of cPanel Jupiter & AI Workspaces</div>
+          </div>
+          
+      <section>
+        <h2 class="section-title"><span class="section-num">8.1</span> Primary cPanel Dashboard &amp; Category Hierarchy</h2>
+        <p class="text-p">
+          The cPanel Localhost graphical interface is structured around the authentic commercial <strong>Jupiter</strong> visual hierarchy:
+        </p>
+
+        <div class="grid-2col">
+          <div class="card-box">
+            <div class="card-box-header"><i class="fa-solid fa-table-cells"></i> Top Navigation &amp; Health Badges</div>
+            <p class="text-p" style="margin-bottom:0;">
+              Features instant Apache (Port 80) and MySQL (Port 3306) live pulsing status indicators, real-time tool search filtering, and user profile management menu.
+            </p>
+          </div>
+
+          <div class="card-box">
+            <div class="card-box-header"><i class="fa-solid fa-layer-group"></i> Collapsible Tool Categories</div>
+            <p class="text-p" style="margin-bottom:0;">
+              Organized into 7 standard categories: <strong>Files</strong>, <strong>Databases</strong>, <strong>Domains</strong>, <strong>Security</strong>, <strong>Software</strong>, <strong>Metrics</strong>, and <strong>Advanced</strong>.
+            </p>
+          </div>
+        </div>
+
+        <h2 class="section-title" style="margin-top:6px;"><span class="section-num">8.2</span> Databases, Files &amp; Domains Workspace</h2>
+        <ul class="custom-bullets">
+          <li><i class="fa-solid fa-check"></i> <strong>File Manager Modal:</strong> Interactive directory tree, code syntax view, breadcrumb navigation, and file upload drop zone.</li>
+          <li><i class="fa-solid fa-check"></i> <strong>MySQL Databases Modal:</strong> One-click database creation, database user generation, and relational privilege checklists.</li>
+          <li><i class="fa-solid fa-check"></i> <strong>Domains &amp; DNS Zone Editor:</strong> Addon domain forms, virtual host root mapping, and DNS record tables.</li>
+        </ul>
+      </section>
+    
+        </div>
+        <div class="running-footer">
+          <span><i class="fa-solid fa-graduation-cap" style="color:#0284c7;"></i> Shubham Ramjiyani &bull; Roll No: 52 &bull; Ashoka College</span>
+          <span class="footer-page-indicator">Page 15</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- PAGE 2 -->
+    <main class="a4-page">
+      <div class="border-frame"></div>
+      <div class="border-frame-inner"></div>
+      <div class="page-content">
+        <div class="running-header">
+          <span style="font-weight:700; color:#0c2340;">Ashoka Center for Business and Computer Studies</span>
+          <span>BBA(CA) Project Documentation &bull; Chapter 8</span>
+        </div>
+        <div>
+          
+      <section>
+        <h2 class="section-title"><span class="section-num">8.3</span> Advanced Cron, Error Pages &amp; Track DNS</h2>
+        <div class="grid-3col">
+          <div class="card-box">
+            <div class="card-box-header"><i class="fa-solid fa-clock"></i> Cron Jobs</div>
+            <p class="text-p" style="margin-bottom:0;">Visual preset dropdowns (Every 15 min, Midnight, Weekly), 5-part cron syntax inputs, active tasks table, and manual 'Run Now' execution output console.</p>
+          </div>
+          <div class="card-box">
+            <div class="card-box-header"><i class="fa-solid fa-file-circle-question"></i> Error Pages</div>
+            <p class="text-p" style="margin-bottom:0;">Code selector (400, 401, 403, 404, 500), tag inserters (HTTP_REFERER, REMOTE_ADDR), live HTML editor, and .htaccess sync.</p>
+          </div>
+          <div class="card-box">
+            <div class="card-box-header"><i class="fa-solid fa-route"></i> Track DNS</div>
+            <p class="text-p" style="margin-bottom:0;">Multi-tab network diagnostics: DNS Lookup (A, MX, TXT), live ICMP Ping with packet loss stats, and traceroute hops.</p>
+          </div>
+        </div>
+
+        <h2 class="section-title" style="margin-top:8px;"><span class="section-num">8.4</span> Manage API Tokens &amp; AI Integration Console</h2>
+        <p class="text-p">
+          The specialized AI workspace introduced in this project under the <strong>Security</strong> category:
+        </p>
+
+        <div class="grid-2col">
+          <div class="card-box">
+            <div class="card-box-header"><i class="fa-solid fa-id-badge"></i> Active Tokens &amp; Creator</div>
+            <p class="text-p" style="margin-bottom:0;">
+              Allows generating new tokens with custom expiration and scope selection checkboxes. Displays one-time secret reveal box with 1-click clipboard copy.
+            </p>
+          </div>
+
+          <div class="card-box">
+            <div class="card-box-header"><i class="fa-solid fa-robot"></i> AI Integration Workspace</div>
+            <p class="text-p" style="margin-bottom:0;">
+              Provides 1-click copy of OpenAPI 3.0 URL for Custom GPTs, direct JSON downloads for OpenAI and Claude tools, and single-tool gateway curl snippets.
+            </p>
+          </div>
+        </div>
+
+        <div class="callout-box gold" style="margin-top:8px;">
+          <strong>Pictorial Archive Note:</strong> Full high-resolution screenshots corresponding to each section are bound in the Appendix and viewable live via the running control panel at <code>http://localhost:2083</code>.
+        </div>
+      </section>
+    
+        </div>
+        <div class="running-footer">
+          <span><i class="fa-solid fa-graduation-cap" style="color:#0284c7;"></i> Shubham Ramjiyani &bull; Roll No: 52 &bull; Ashoka College</span>
+          <span class="footer-page-indicator">Page 16</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

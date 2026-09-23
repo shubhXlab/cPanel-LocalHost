@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="cpFlameGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A48" />
+      <stop offset="50%" stop-color="#FF6C2C" />
+      <stop offset="100%" stop-color="#E05619" />
+    </linearGradient>
+    <linearGradient id="cpDarkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <filter id="cpGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#FF6C2C" flood-opacity="0.35" />
+    </filter>
+  </defs>
+  <!-- Background Rounded Shield -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#cpDarkGrad)" stroke="#334155" stroke-width="2" />
+  <!-- Hexagon Outer Glow Ring -->
+  <path d="M32 10L50 20.5V41.5L32 52L14 41.5V20.5L32 10Z" stroke="url(#cpFlameGrad)" stroke-width="2.5" fill="none" opacity="0.6" />
+  <!-- Flame Core Logo with Glow -->
+  <g filter="url(#cpGlow)">
+    <path d="M32 16C32 16 38 23 38 29C38 32.5 35.8 35.5 32.5 36.6C32.1 36.8 31.8 36.4 32 36C32.9 34.3 33.1 32 32.2 30.2C31.4 28.5 29.8 27.5 29.5 25.5C29.2 23.5 29.8 21.8 32 16Z" fill="#FFA573" />
+    <path d="M26 30C26 27.5 27 25 28.5 23C26.5 25 24 28.5 24 33C24 38.5 28.2 43 33.5 43C37.8 43 41.4 39.8 42.2 35.6C42.4 34.6 41.4 33.9 40.5 34.5C38.8 35.7 36.8 36.5 34.6 36.5C31.5 36.5 28.5 34.8 27.2 32C26.6 30.7 26.2 30.3 26 30Z" fill="url(#cpFlameGrad)" />
+    <!-- Server Indicator Dots -->
+    <circle cx="25" cy="46" r="2" fill="#10B981" />
+    <circle cx="32" cy="46" r="2" fill="#38BDF8" />
+    <circle cx="39" cy="46" r="2" fill="#FF8A48" />
+  </g>
+</svg>

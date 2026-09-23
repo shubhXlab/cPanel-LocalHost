@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cPanel &bull; Code Editor</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ff6c2c'/><text x='50%' y='68%' font-size='55' font-family='Arial,sans-serif' font-weight='900' fill='white' text-anchor='middle'>cP</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #ffffff;
+      color: #1e293b;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Dark Bar (Exact cPanel Jupiter / Paper Lantern code editor header) */
+    .editor-topbar {
+      height: 42px;
+      background-color: #22272c;
+      border-bottom: 1px solid #14181c;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      color: #f8fafc;
+      user-select: none;
+      z-index: 20;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topbar-label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .filepath-box {
+      background-color: #161a1e;
+      border: 1px solid #475569;
+      border-radius: 3px;
+      color: #ffffff;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+      padding: 3px 10px;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    .topbar-select {
+      background-color: #ffffff;
+      color: #1e293b;
+      border: 1px solid #94a3b8;
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .topbar-btn {
+      background-color: #f8fafc;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .topbar-btn:hover {
+      background-color: #e2e8f0;
+      border-color: #94a3b8;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-save-changes {
+      background-color: #0284c7;
+      color: #ffffff;
+      border: 1px solid #0369a1;
+      border-radius: 3px;
+      padding: 4px 16px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: background-color 0.15s ease, transform 0.05s ease;
+    }
+    .btn-save-changes:hover {
+      background-color: #0369a1;
+    }
+    .btn-save-changes:active {
+      transform: translateY(1px);
+    }
+    .btn-save-changes.saving {
+      opacity: 0.8;
+      cursor: wait;
+    }
+
+    /* Sub-Toolbar (Keyboard shortcuts & Ace controls) */
+    .editor-subbar {
+      height: 36px;
+      background-color: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 12px;
+      z-index: 15;
+    }
+
+    .subbar-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .shortcuts-link {
+      color: #0284c7;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .shortcuts-link:hover {
+      color: #0369a1;
+      text-decoration: underline;
+    }
+
+    .subbar-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .subbar-btn {
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      color: #334155;
+      width: 28px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .subbar-btn:hover {
+      background-color: #f1f5f9;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .subbar-btn.active {
+      background-color: #e0f2fe;
+      border-color: #0284c7;
+      color: #0284c7;
+    }
+
+    .subbar-select {
+      background-color: #ffffff;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      height: 26px;
+      padding: 0 6px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Editor Workspace */
+    .editor-workspace {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: calc(100% - 100px);
+      background-color: #ffffff;
+    }
+
+    #ace-editor {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      font-size: 13px;
+      font-family: 'Consolas', 'Courier New', monospace;
+    }
+
+    #legacy-editor {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      outline: none;
+      padding: 12px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #0f172a;
+      background-color: #ffffff;
+      resize: none;
+      display: none;
+      white-space: pre;
+    }
+
+    /* Status Bar */
+    .editor-statusbar {
+      height: 22px;
+      background-color: #f1f5f9;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11.5px;
+      color: #64748b;
+      user-select: none;
+      z-index: 10;
+    }
+
+    .statusbar-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Toast Notification */
+    .toast-popup {
+      position: fixed;
+      top: 50px;
+      right: 20px;
+      background-color: #0f172a;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 4px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-10px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 1000;
+    }
+    .toast-popup.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .toast-popup.success {
+      background-color: #065f46;
+      border-left: 4px solid #10b981;
+    }
+    .toast-popup.error {
+      background-color: #881337;
+      border-left: 4px solid #f43f5e;
+    }
+    .toast-popup.info {
+      background-color: #1e3a8a;
+      border-left: 4px solid #3b82f6;
+    }
+
+    /* Keyboard Shortcuts Modal */
+    .shortcuts-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .shortcuts-modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .shortcuts-modal {
+      background: #ffffff;
+      width: 520px;
+      max-width: 90vw;
+      border-radius: 6px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .shortcuts-header {
+      background: #22272c;
+      color: #ffffff;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .shortcuts-body {
+      padding: 16px 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .shortcuts-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .shortcuts-table th {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 2px solid #e2e8f0;
+      color: #475569;
+    }
+    .shortcuts-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+    }
+    .kbd-badge {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      color: #0f172a;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+    }
+    .shortcuts-footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Unsaved indicator */
+    .dirty-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #f59e0b;
+      margin-left: 6px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .dirty-indicator.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Dark Header Bar -->
+  <div class="editor-topbar">
+    <div class="topbar-left">
+      <span class="topbar-label">Editing:</span>
+      <span class="filepath-box" id="topbar-filepath" title="File Path">Loading file...</span>
+      <span class="dirty-indicator" id="dirty-dot" title="Unsaved changes"></span>
+
+      <span class="topbar-label" style="margin-left:8px;">Encoding:</span>
+      <select id="topbar-encoding" class="topbar-select" title="Character Encoding">
+        <option value="utf-8" selected>utf-8</option>
+        <option value="us-ascii">us-ascii</option>
+        <option value="iso-8859-1">iso-8859-1</option>
+        <option value="iso-8859-2">iso-8859-2</option>
+        <option value="windows-1252">windows-1252</option>
+        <option value="big5">big5</option>
+        <option value="gb2312">gb2312</option>
+        <option value="shift_jis">shift_jis</option>
+        <option value="euc-jp">euc-jp</option>
+        <option value="euc-kr">euc-kr</option>
+      </select>
+      <button type="button" class="topbar-btn" id="btn-reopen" title="Reload from server">
+        <i class="fa-solid fa-arrows-rotate"></i> Re-open
+      </button>
+    </div>
+
+    <div class="topbar-right">
+      <button type="button" class="topbar-btn" id="btn-toggle-legacy" title="Toggle between Ace and plain text editor">
+        Use legacy editor
+      </button>
+      <button type="button" class="btn-save-changes" id="btn-save" title="Save file (Ctrl+S)">
+        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+      </button>
+      <button type="button" class="topbar-btn" id="btn-close" title="Close this tab">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Sub-Toolbar -->
+  <div class="editor-subbar">
+    <div class="subbar-left">
+      <a class="shortcuts-link" id="btn-open-shortcuts">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Keyboard shortcuts
+      </a>
+    </div>
+
+    <div class="subbar-right">
+      <button type="button" class="subbar-btn" id="btn-find" title="Find / Replace (Ctrl+F)">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+      <button type="button" class="subbar-btn" id="btn-gotoline" title="Go to Line (Ctrl+G)" style="font-family:monospace; font-weight:bold;">
+        &gt;_
+      </button>
+      <button type="button" class="subbar-btn" id="btn-undo" title="Undo (Ctrl+Z)">
+        <i class="fa-solid fa-rotate-left"></i>
+      </button>
+      <button type="button" class="subbar-btn" id="btn-redo" title="Redo (Ctrl+Y)">
+        <i class="fa-solid fa-rotate-right"></i>
+      </button>
+      <button type="button" class="subbar-btn" id="btn-wrap" title="Toggle Word Wrap">
+        <i class="fa-solid fa-arrows-left-right"></i>
+      </button>
+
+      <select id="select-fontsize" class="subbar-select" title="Font Size">
+        <option value="10px">10px</option>
+        <option value="11px">11px</option>
+        <option value="12px">12px</option>
+        <option value="13px" selected>13px</option>
+        <option value="14px">14px</option>
+        <option value="16px">16px</option>
+        <option value="18px">18px</option>
+        <option value="20px">20px</option>
+      </select>
+
+      <select id="select-syntax" class="subbar-select" title="Syntax Highlighter">
+        <option value="text">Text</option>
+        <option value="php">PHP</option>
+        <option value="html">HTML</option>
+        <option value="javascript">JavaScript</option>
+        <option value="css">CSS</option>
+        <option value="json">JSON</option>
+        <option value="sql">SQL</option>
+        <option value="python">Python</option>
+        <option value="xml">XML</option>
+        <option value="sh">Shell</option>
+        <option value="markdown">Markdown</option>
+        <option value="yaml">YAML</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Main Editor Area -->
+  <div class="editor-workspace">
+    <div id="ace-editor"></div>
+    <textarea id="legacy-editor" spellcheck="false"></textarea>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="editor-statusbar">
+    <div class="statusbar-item" id="status-cursor">
+      <span>Ln 1, Col 1</span>
+    </div>
+    <div class="statusbar-item" style="gap:16px;">
+      <span id="status-size">0 bytes</span>
+      <span id="status-syntax">Text</span>
+      <span id="status-encoding">UTF-8</span>
+    </div>
+  </div>
+
+  <!-- Toast Popup -->
+  <div id="toast" class="toast-popup">
+    <i class="fa-solid fa-circle-check" id="toast-icon"></i>
+    <span id="toast-msg">Saved</span>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div class="shortcuts-modal-overlay" id="shortcuts-modal">
+    <div class="shortcuts-modal">
+      <div class="shortcuts-header">
+        <span>Keyboard Shortcuts</span>
+        <button type="button" id="btn-close-shortcuts" style="background:transparent; border:none; color:#fff; font-size:16px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="shortcuts-body">
+        <table class="shortcuts-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Shortcut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Save Changes</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">S</span></td></tr>
+            <tr><td>Find</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">F</span></td></tr>
+            <tr><td>Replace</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">H</span></td></tr>
+            <tr><td>Go to Line</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">G</span> / <span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">L</span></td></tr>
+            <tr><td>Undo</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">Z</span></td></tr>
+            <tr><td>Redo</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">Y</span></td></tr>
+            <tr><td>Toggle Comment</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">/</span></td></tr>
+            <tr><td>Indent Line(s)</td><td><span class="kbd-badge">Tab</span></td></tr>
+            <tr><td>Outdent Line(s)</td><td><span class="kbd-badge">Shift</span> + <span class="kbd-badge">Tab</span></td></tr>
+            <tr><td>Duplicate Line</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">Shift</span> + <span class="kbd-badge">D</span></td></tr>
+            <tr><td>Delete Line</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">D</span></td></tr>
+            <tr><td>Select All</td><td><span class="kbd-badge">Ctrl</span> + <span class="kbd-badge">A</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="shortcuts-footer">
+        <button type="button" class="topbar-btn" id="btn-dismiss-shortcuts">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ace Editor Scripts (bundled locally with CDN fallback) -->
+  <script src="/assets/ace/ace.js"></script>
+  <script src="/assets/ace/ext-searchbox.js"></script>
+  <script>
+    if (typeof ace === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js';
+      document.head.appendChild(s);
+    }
+  </script>
+
+  <!-- Code Editor Controller Logic -->
+  <script>
+    (function () {
+      let editor = null;
+      let filePath = '';
+      let fileEncoding = 'utf-8';
+      let isDirty = false;
+      let isLegacyMode = false;
+      let csrfToken = null;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      filePath = urlParams.get('file') || '';
+      fileEncoding = urlParams.get('encoding') || 'utf-8';
+
+      const pathBox = document.getElementById('topbar-filepath');
+      const encodingSelect = document.getElementById('topbar-encoding');
+      const btnSave = document.getElementById('btn-save');
+      const btnClose = document.getElementById('btn-close');
+      const btnReopen = document.getElementById('btn-reopen');
+      const btnLegacy = document.getElementById('btn-toggle-legacy');
+      const dirtyDot = document.getElementById('dirty-dot');
+      const legacyEditor = document.getElementById('legacy-editor');
+      const aceContainer = document.getElementById('ace-editor');
+      const fontSizeSelect = document.getElementById('select-fontsize');
+      const syntaxSelect = document.getElementById('select-syntax');
+      const btnFind = document.getElementById('btn-find');
+      const btnGotoLine = document.getElementById('btn-gotoline');
+      const btnUndo = document.getElementById('btn-undo');
+      const btnRedo = document.getElementById('btn-redo');
+      const btnWrap = document.getElementById('btn-wrap');
+      const statusCursor = document.getElementById('status-cursor');
+      const statusSize = document.getElementById('status-size');
+      const statusSyntax = document.getElementById('status-syntax');
+      const statusEncoding = document.getElementById('status-encoding');
+      const shortcutsModal = document.getElementById('shortcuts-modal');
+      const btnOpenShortcuts = document.getElementById('btn-open-shortcuts');
+      const btnCloseShortcuts = document.getElementById('btn-close-shortcuts');
+      const btnDismissShortcuts = document.getElementById('btn-dismiss-shortcuts');
+
+      function init() {
+        if (!filePath) {
+          showToast('No file specified in URL parameter', 'error');
+          pathBox.textContent = 'No file specified';
+          return;
+        }
+
+        pathBox.textContent = filePath;
+        pathBox.title = filePath;
+        encodingSelect.value = fileEncoding;
+        statusEncoding.textContent = fileEncoding.toUpperCase();
+        document.title = (filePath.split('/').pop() || 'File') + ' - cPanel Code Editor';
+
+        setupAce();
+        setupEvents();
+        fetchCsrfToken();
+        loadFile();
+      }
+
+      function setupAce() {
+        editor = ace.edit('ace-editor');
+        editor.setTheme('ace/theme/chrome');
+        editor.setFontSize('13px');
+        editor.setShowPrintMargin(false);
+        editor.session.setTabSize(4);
+        editor.session.setUseSoftTabs(true);
+        editor.session.setUseWrapMode(false);
+
+        const mode = detectSyntaxMode(filePath);
+        syntaxSelect.value = mode;
+        statusSyntax.textContent = mode.toUpperCase();
+        setEditorMode(mode);
+
+        editor.selection.on('changeCursor', () => {
+          const pos = editor.getCursorPosition();
+          statusCursor.textContent = 'Ln ' + (pos.row + 1) + ', Col ' + (pos.column + 1);
+        });
+
+        editor.session.on('change', () => {
+          if (!isDirty) {
+            setDirty(true);
+          }
+          updateFileSize(editor.getValue());
+        });
+
+        editor.commands.addCommand({
+          name: 'saveFile',
+          bindKey: { win: 'Ctrl-S', mac: 'Command-S' },
+          exec: () => saveFile()
+        });
+
+        editor.commands.addCommand({
+          name: 'gotolineCustom',
+          bindKey: { win: 'Ctrl-G', mac: 'Command-G' },
+          exec: () => triggerGotoLine()
+        });
+      }
+
+      function setEditorMode(mode) {
+        try {
+          editor.session.setMode('ace/mode/' + mode);
+        } catch (e) {
+          editor.session.setMode('ace/mode/text');
+        }
+      }
+
+      function detectSyntaxMode(p) {
+        const ext = (p.split('.').pop() || '').toLowerCase();
+        const map = {
+          'php': 'php',
+          'phtml': 'php',
+          'html': 'html',
+          'htm': 'html',
+          'js': 'javascript',
+          'mjs': 'javascript',
+          'json': 'json',
+          'css': 'css',
+          'scss': 'css',
+          'sql': 'sql',
+          'py': 'python',
+          'xml': 'xml',
+          'sh': 'sh',
+          'bash': 'sh',
+          'md': 'markdown',
+          'markdown': 'markdown',
+          'yml': 'yaml',
+          'yaml': 'yaml'
+        };
+        return map[ext] || 'text';
+      }
+
+      function setDirty(dirty) {
+        isDirty = dirty;
+        const fname = filePath.split('/').pop() || 'File';
+        if (isDirty) {
+          dirtyDot.classList.add('visible');
+          document.title = '● ' + fname + ' - cPanel Code Editor';
+        } else {
+          dirtyDot.classList.remove('visible');
+          document.title = fname + ' - cPanel Code Editor';
+        }
+      }
+
+      function updateFileSize(text) {
+        const bytes = new Blob([text]).size;
+        if (bytes < 1024) {
+          statusSize.textContent = bytes + ' bytes';
+        } else if (bytes < 1024 * 1024) {
+          statusSize.textContent = (bytes / 1024).toFixed(1) + ' KB';
+        } else {
+          statusSize.textContent = (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+      }
+
+      async function fetchCsrfToken() {
+        try {
+          const res = await fetch('/api/auth/csrf-token');
+          if (res.ok) {
+            const data = await res.json();
+            csrfToken = data.csrfToken;
+          }
+        } catch (e) {}
+      }
+
+      async function loadFile() {
+        try {
+          showToast('Loading file...', 'info');
+          const res = await fetch('/api/files/read?path=' + encodeURIComponent(filePath));
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: 'Failed to read file' }));
+            throw new Error(err.error || ('HTTP ' + res.status));
+          }
+          const data = await res.json();
+          const content = data.content || '';
+
+          editor.setValue(content, -1);
+          legacyEditor.value = content;
+          updateFileSize(content);
+          setDirty(false);
+          showToast('File loaded successfully', 'success');
+        } catch (err) {
+          showToast('Error: ' + err.message, 'error');
+        }
+      }
+
+      async function saveFile() {
+        if (!filePath) return;
+        btnSave.classList.add('saving');
+        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+        const content = isLegacyMode ? legacyEditor.value : editor.getValue();
+        const encoding = encodingSelect.value || 'utf-8';
+
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+          const res = await fetch('/api/files/save', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ path: filePath, content, encoding })
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: 'Save failed' }));
+            throw new Error(err.error || ('HTTP ' + res.status));
+          }
+
+          setDirty(false);
+          const now = new Date().toLocaleTimeString();
+          showToast('File saved successfully at ' + now, 'success');
+        } catch (err) {
+          showToast('Failed to save: ' + err.message, 'error');
+        } finally {
+          btnSave.classList.remove('saving');
+          btnSave.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+        }
+      }
+
+      function triggerGotoLine() {
+        const line = prompt('Go to line number:');
+        if (line && !isNaN(parseInt(line))) {
+          editor.gotoLine(parseInt(line), 0, true);
+        }
+      }
+
+      function setupEvents() {
+        btnSave.addEventListener('click', saveFile);
+
+        btnClose.addEventListener('click', () => {
+          if (isDirty) {
+            if (confirm('You have unsaved changes. Discard changes and close?')) {
+              window.close();
+            }
+          } else {
+            window.close();
+          }
+        });
+
+        btnReopen.addEventListener('click', () => {
+          if (isDirty) {
+            if (!confirm('You have unsaved changes. Reloading will discard them. Continue?')) {
+              return;
+            }
+          }
+          fileEncoding = encodingSelect.value;
+          statusEncoding.textContent = fileEncoding.toUpperCase();
+          loadFile();
+        });
+
+        encodingSelect.addEventListener('change', () => {
+          fileEncoding = encodingSelect.value;
+          statusEncoding.textContent = fileEncoding.toUpperCase();
+        });
+
+        fontSizeSelect.addEventListener('change', () => {
+          editor.setFontSize(fontSizeSelect.value);
+          legacyEditor.style.fontSize = fontSizeSelect.value;
+        });
+
+        syntaxSelect.addEventListener('change', () => {
+          const mode = syntaxSelect.value;
+          setEditorMode(mode);
+          statusSyntax.textContent = mode.toUpperCase();
+        });
+
+        btnFind.addEventListener('click', () => editor.execCommand('find'));
+        btnGotoLine.addEventListener('click', triggerGotoLine);
+        btnUndo.addEventListener('click', () => editor.undo());
+        btnRedo.addEventListener('click', () => editor.redo());
+
+        let wrapActive = false;
+        btnWrap.addEventListener('click', () => {
+          wrapActive = !wrapActive;
+          editor.session.setUseWrapMode(wrapActive);
+          legacyEditor.style.whiteSpace = wrapActive ? 'pre-wrap' : 'pre';
+          btnWrap.classList.toggle('active', wrapActive);
+        });
+
+        btnLegacy.addEventListener('click', () => {
+          isLegacyMode = !isLegacyMode;
+          if (isLegacyMode) {
+            legacyEditor.value = editor.getValue();
+            aceContainer.style.display = 'none';
+            legacyEditor.style.display = 'block';
+            btnLegacy.textContent = 'Use Ace editor';
+            legacyEditor.focus();
+          } else {
+            editor.setValue(legacyEditor.value, -1);
+            legacyEditor.style.display = 'none';
+            aceContainer.style.display = 'block';
+            btnLegacy.textContent = 'Use legacy editor';
+            editor.focus();
+          }
+        });
+
+        legacyEditor.addEventListener('input', () => {
+          if (!isDirty) setDirty(true);
+          updateFileSize(legacyEditor.value);
+        });
+
+        btnOpenShortcuts.addEventListener('click', () => {
+          shortcutsModal.classList.add('active');
+        });
+        btnCloseShortcuts.addEventListener('click', () => {
+          shortcutsModal.classList.remove('active');
+        });
+        btnDismissShortcuts.addEventListener('click', () => {
+          shortcutsModal.classList.remove('active');
+        });
+        shortcutsModal.addEventListener('click', (e) => {
+          if (e.target === shortcutsModal) {
+            shortcutsModal.classList.remove('active');
+          }
+        });
+
+        window.addEventListener('keydown', (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            saveFile();
+          }
+        });
+
+        window.addEventListener('beforeunload', (e) => {
+          if (isDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+          }
+        });
+      }
+
+      let toastTimeout = null;
+      function showToast(msg, type = 'info') {
+        const toast = document.getElementById('toast');
+        const icon = document.getElementById('toast-icon');
+        const text = document.getElementById('toast-msg');
+
+        toast.className = 'toast-popup visible ' + type;
+        text.textContent = msg;
+
+        if (type === 'success') {
+          icon.className = 'fa-solid fa-circle-check';
+        } else if (type === 'error') {
+          icon.className = 'fa-solid fa-circle-exclamation';
+        } else {
+          icon.className = 'fa-solid fa-circle-info';
+        }
+
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          toast.classList.remove('visible');
+        }, 3200);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>

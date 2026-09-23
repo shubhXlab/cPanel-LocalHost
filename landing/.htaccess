@@ -1,0 +1,72 @@
+# ==============================================================================
+# cPanel Localhost Landing & Download Page - Production .htaccess
+# Optimized for cPanel Apache Web Servers
+# ==============================================================================
+
+# 1. Force HTTPS (Exclude ACME / AutoSSL DCV challenges)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/ [NC]
+  RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/ [NC]
+  RewriteCond %{REQUEST_URI} !^/\.well-known/cpanel-dcv/ [NC]
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# 2. Binary Executable MIME Types & Force Download
+<IfModule mod_mime.c>
+  AddType application/octet-stream .exe
+  AddType application/zip .zip
+  AddType image/svg+xml .svg
+  AddType application/javascript .js
+  AddType text/css .css
+</IfModule>
+
+# Force browser to download .exe files directly with Content-Disposition
+<IfModule mod_headers.c>
+  <FilesMatch "\.(exe|zip)$">
+    Header set Content-Disposition "attachment"
+    Header set X-Content-Type-Options "nosniff"
+  </FilesMatch>
+
+  # Modern Security Headers
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# 3. Gzip / Deflate Compression for Speed
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html
+  AddOutputFilterByType DEFLATE text/css
+  AddOutputFilterByType DEFLATE text/javascript
+  AddOutputFilterByType DEFLATE application/javascript
+  AddOutputFilterByType DEFLATE application/x-javascript
+  AddOutputFilterByType DEFLATE application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# 4. Browser Caching & Revalidation
+<IfModule mod_headers.c>
+  # Never cache HTML so updates apply immediately
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 day"
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType text/css "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType application/octet-stream "access plus 1 day"
+</IfModule>
+
+# 5. Disable Directory Browsing
+Options -Indexes
