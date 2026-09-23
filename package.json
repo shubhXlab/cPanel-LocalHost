@@ -1,5 +1,5 @@
 {
-  "name": "cpanel-localhost",
+  "name": "@shubhxlab/cpanel-localhost",
   "version": "1.0.0",
   "description": "Localhost cPanel Control Panel integrated with XAMPP MySQL, Apache, and PHP",
   "main": "server/server.js",
@@ -7,14 +7,23 @@
     "start": "node server/server.js",
     "dev": "node --watch server/server.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shubhXlab/cPanel-LocalHost.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "keywords": [
     "cpanel",
     "xampp",
     "mysql",
     "localhost",
-    "control-panel"
+    "control-panel",
+    "ai-agents",
+    "openapi"
   ],
-  "author": "Antigravity",
+  "author": "Shubham Ramjiyani",
   "license": "MIT",
   "dependencies": {
     "adm-zip": "^0.5.16",
