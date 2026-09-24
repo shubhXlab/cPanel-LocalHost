@@ -25,6 +25,15 @@ const CPANEL_CONFIG = {
       sha256: "CBD36CC625AD2804FDB3640B22E2B899E34BDD7FBB959CFC3BC6642CB48DCF1B",
       recommended: true
     },
+    setupBundle: {
+      filename: "Setup-cPanel-Localhost.zip",
+      url: "Setup-cPanel-Localhost.zip",
+      size: "130 MB",
+      badge: "Setup Bundle",
+      os: "Windows 10 / 11 (64-bit)",
+      sha256: "BFEACA74C0E16FF44A6C3A661B2FA6A44CD36C400A86C4CFE05801ED3D1D9582",
+      recommended: false
+    },
     powershellInstall: `irm https://localhost.shubhxlab.xyz/cPanel-Localhost.exe -OutFile cPanel.exe; .\\cPanel.exe`
   },
 

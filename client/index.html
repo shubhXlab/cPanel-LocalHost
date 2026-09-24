@@ -1435,50 +1435,68 @@
        MODAL: File Manager - Password Protect
        ======================================================================== -->
   <div class="modal-overlay" id="modal-fm-privacy">
-    <div class="modal-container" style="max-width:540px;">
+    <div class="modal-container" style="max-width:560px;">
       <div class="modal-header">
-        <div class="modal-title"><i class="fa-solid fa-user-lock text-warning"></i> Directory Privacy (.htaccess Protection)</div>
+        <div class="modal-title"><i class="fa-solid fa-user-lock text-warning"></i> Directory Privacy</div>
         <button class="modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="modal-body">
-        <p style="font-size:12.5px; color:#64748b; margin-bottom:12px;">
-          Password-protect web directories using Apache HTTP Basic Authentication. Visitors will be prompted for credentials before accessing content.
-        </p>
-        <div class="form-group">
-          <label style="font-weight:600; font-size:12px; color:#334155;"><i class="fa-solid fa-folder"></i> Directory to Protect:</label>
-          <div style="display:flex; gap:8px;">
-            <input type="text" id="privacy-dir-input" class="form-control" value="/public_html" style="font-family:Consolas, monospace;" />
-            <select id="privacy-dir-select" class="form-control" style="width:160px;" onchange="document.getElementById('privacy-dir-input').value = this.value;">
+      <div class="modal-body" style="padding:20px;">
+
+        <!-- Live Status Banner -->
+        <div id="privacy-status-banner" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;margin-bottom:16px;background:#f1f5f9;border:1px solid #cbd5e1;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="privacy-status-icon"><i class="fa-solid fa-circle-notch fa-spin" style="color:#94a3b8;"></i></span>
+            <span id="privacy-status-text" style="font-size:13px;font-weight:600;color:#475569;">Checking status...</span>
+          </div>
+          <span id="privacy-status-badge" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;background:#e2e8f0;color:#64748b;">—</span>
+        </div>
+
+        <!-- Directory Picker -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:600;font-size:12px;color:#334155;margin-bottom:4px;display:block;"><i class="fa-solid fa-folder"></i> Directory to Protect</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="privacy-dir-input" class="form-control" value="/public_html" style="font-family:Consolas,monospace;flex:1;"
+              oninput="fileManager.checkPrivacyStatus(this.value)" />
+            <select id="privacy-dir-select" class="form-control" style="width:155px;"
+              onchange="document.getElementById('privacy-dir-input').value=this.value; fileManager.checkPrivacyStatus(this.value);">
               <option value="/public_html">/public_html</option>
             </select>
           </div>
-          <small style="color:#64748b; display:block; margin-top:3px;">Select or type the target directory inside document root.</small>
         </div>
-        <div class="form-group" style="margin-top:14px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
-          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0;">
-            <input type="checkbox" id="privacy-enabled" checked />
-            <strong style="color:#0f172a;">Password protect this directory</strong>
-          </label>
-        </div>
-        <div class="form-group" style="margin-top:12px;">
-          <label style="font-weight:600; font-size:12px; color:#334155;">Security Prompt Name (Realm):</label>
+
+        <!-- Auth Name -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-weight:600;font-size:12px;color:#334155;margin-bottom:4px;display:block;">Security Prompt Name (Realm)</label>
           <input type="text" id="privacy-auth-name" class="form-control" value="Restricted Directory" placeholder="e.g. Members Only Area" />
-          <small style="color:#64748b; display:block; margin-top:3px;">Shown to visitors in the browser's HTTP login dialog.</small>
+          <small style="color:#64748b;display:block;margin-top:3px;">Shown in the browser's password dialog.</small>
         </div>
-        <hr style="border:none; border-top:1px solid #e2e8f0; margin:14px 0;" />
-        <h5 style="font-size:13px; margin-bottom:8px; color:#0f172a;"><i class="fa-solid fa-user-plus"></i> Authorized User Credentials</h5>
-        <div class="form-group">
-          <label style="font-weight:600; font-size:12px; color:#334155;">Username:</label>
-          <input type="text" id="privacy-user" class="form-control" placeholder="e.g. member" />
+
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:14px 0;" />
+
+        <!-- Existing Users List -->
+        <div id="privacy-users-section" style="display:none;margin-bottom:14px;">
+          <label style="font-weight:600;font-size:12px;color:#334155;margin-bottom:6px;display:block;"><i class="fa-solid fa-users"></i> Authorized Users</label>
+          <div id="privacy-users-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
         </div>
-        <div class="form-group">
-          <label style="font-weight:600; font-size:12px; color:#334155;">Password:</label>
-          <input type="password" id="privacy-pass" class="form-control" placeholder="Enter secure password" />
+
+        <!-- Add User -->
+        <div>
+          <label style="font-weight:600;font-size:12px;color:#334155;margin-bottom:6px;display:block;"><i class="fa-solid fa-user-plus"></i> Add / Update User</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="privacy-user" class="form-control" placeholder="Username" style="flex:1;min-width:120px;" />
+            <input type="password" id="privacy-pass" class="form-control" placeholder="Password" style="flex:1;min-width:120px;" />
+          </div>
         </div>
+
       </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" data-close-modal>Cancel</button>
-        <button class="btn-primary" onclick="fileManager.submitPrivacy()"><i class="fa-solid fa-check"></i> Save Directory Privacy</button>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <button type="button" id="btn-privacy-turn-off" style="display:none;background:#ef4444;color:#fff;border:none;padding:7px 14px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;" onclick="fileManager.disablePrivacy()">
+          <i class="fa-solid fa-lock-open"></i> Turn Off Protection
+        </button>
+        <div style="display:flex;gap:8px;margin-left:auto;">
+          <button class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button class="btn btn-primary" onclick="fileManager.submitPrivacy()"><i class="fa-solid fa-shield-halved"></i> Save &amp; Protect</button>
+        </div>
       </div>
     </div>
   </div>

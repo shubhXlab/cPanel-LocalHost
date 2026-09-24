@@ -1871,3 +1871,17 @@ p {
     grid-template-columns: 1fr;
   }
 }
+
+.mockup-tile-icon svg {
+  display: inline-block;
+  vertical-align: middle;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+  transition: transform 0.2s ease;
+}
+.mockup-tile:hover .mockup-tile-icon svg {
+  transform: scale(1.1);
+}
+.feature-icon-wrapper svg {
+  display: inline-block;
+  vertical-align: middle;
+}

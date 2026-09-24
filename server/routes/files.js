@@ -172,12 +172,36 @@ router.post('/extract', async (req, res) => {
   }
 });
 
+// Get Directory Privacy Status
+router.get('/privacy-status', async (req, res) => {
+  const dirPath = req.query.path || '/public_html';
+  try {
+    const status = await fileService.getPrivacyStatus(dirPath);
+    res.json(status);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Password Protect Directory
 router.post('/protect-dir', async (req, res) => {
   const { dir, authName, username, password, enabled } = req.body;
   try {
-    const result = await fileService.protectDirectory(dir, authName, username, password, enabled);
-    panelDb.logAction('PROTECT_DIR', `Configured directory privacy for ${dir}`, req.user ? req.user.id : 'system', req.ip);
+    const isEnabled = enabled === true || enabled === 'true';
+    const result = await fileService.protectDirectory(dir, authName, username, password, isEnabled);
+    panelDb.logAction('PROTECT_DIR', `${isEnabled ? 'Enabled' : 'Disabled'} directory privacy for ${dir}`, req.user ? req.user.id : 'system', req.ip);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Remove a user from directory .htpasswd
+router.post('/privacy-remove-user', async (req, res) => {
+  const { dir, username } = req.body;
+  try {
+    const result = await fileService.removePrivacyUser(dir, username);
+    panelDb.logAction('PRIVACY_REMOVE_USER', `Removed user "${username}" from ${dir}`, req.user ? req.user.id : 'system', req.ip);
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });

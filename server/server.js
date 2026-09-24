@@ -17,16 +17,21 @@ async function startServer() {
     console.log(`phpMyAdmin:    ${config.xampp.phpMyAdmin.url}`);
     console.log('====================================================');
 
-    // Auto-check or auto-start XAMPP services on startup
+    // Auto-start Apache + MySQL every time (always-on mode)
     try {
-      if (process.env.AUTO_START_SERVICES === 'true' || process.argv.includes('--autostart')) {
-        const initStatus = await xamppService.getStatus();
-        if (!initStatus.mysql.running) await xamppService.startMySQL();
-        if (!initStatus.apache.running) await xamppService.startApache();
+      console.log('Auto-starting Apache & MySQL...');
+      const initStatus = await xamppService.getStatus();
+      if (!initStatus.mysql.running) {
+        await xamppService.startMySQL();
+        console.log('MySQL started ✅');
+      }
+      if (!initStatus.apache.running) {
+        await xamppService.startApache();
+        console.log('Apache started ✅');
       }
 
       const status = await xamppService.getStatus();
-      console.log(`MySQL Status:  ${status.mysql.running ? 'RUNNING (Port 3306) ✅' : 'STOPPED (Click Start in cPanel) ⚠️'}`);
+      console.log(`MySQL Status:  ${status.mysql.running ? 'RUNNING (Port 3306) ✅' : 'STOPPED ⚠️'}`);
       console.log(`Apache Status: ${status.apache.running ? 'RUNNING (Port 80) ✅' : 'STOPPED (Click Start in cPanel) ⚠️'}`);
     } catch (e) {}
   });

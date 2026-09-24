@@ -1,3 +1,7 @@
+
+# Character Encoding
+AddDefaultCharset UTF-8
+AddCharset UTF-8 .html .css .js .svg .json
 # ==============================================================================
 # cPanel Localhost Landing & Download Page - Production .htaccess
 # Optimized for cPanel Apache Web Servers

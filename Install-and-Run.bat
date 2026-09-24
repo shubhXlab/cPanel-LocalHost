@@ -1,112 +1,89 @@
 @echo off
 setlocal EnableDelayedExpansion
-title cPanel-LocalHost — First-Run Setup
+title cPanel-Localhost
 
 :: ─────────────────────────────────────────────────────────────────────────────
-:: STEP 0 ─ Self-elevate to Administrator if not already running elevated
+:: Self-elevate to Administrator (needed for cert install + Defender exclusion)
 :: ─────────────────────────────────────────────────────────────────────────────
 net session >nul 2>&1
 if %errorLevel% neq 0 (
-    echo Requesting administrator privileges...
-    powershell -NoProfile -Command ^
-        "Start-Process -FilePath '%~f0' -Verb RunAs"
+    echo Requesting administrator access...
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
     exit /b
 )
 
-:: ─────────────────────────────────────────────────────────────────────────────
-:: STEP 1 ─ Resolve paths relative to this batch file's location
-:: ─────────────────────────────────────────────────────────────────────────────
 cd /D "%~dp0"
-set "CERT_FILE=%~dp0scripts\cpanel-localhost-cert.cer"
-set "EXE_FILE=%~dp0cPanel-Localhost.exe"
 
 cls
 echo.
-echo  ╔══════════════════════════════════════════════════════╗
-echo  ║        cPanel-LocalHost  ─  First-Run Setup         ║
-echo  ╚══════════════════════════════════════════════════════╝
+echo  ============================================================
+echo    cPanel-Localhost  ^|  Starting up...
+echo  ============================================================
 echo.
 
 :: ─────────────────────────────────────────────────────────────────────────────
-:: STEP 2 ─ Verify required files exist
+:: Install certificate (skip if already in store)
 :: ─────────────────────────────────────────────────────────────────────────────
-if not exist "%CERT_FILE%" (
-    echo  [ERROR] Certificate not found:
-    echo          %CERT_FILE%
-    echo.
-    echo  Please ensure "scripts\cpanel-localhost-cert.cer" is in the same
-    echo  folder as this batch file, then run again.
-    echo.
-    pause
-    exit /b 1
-)
-
-if not exist "%EXE_FILE%" (
-    echo  [ERROR] Executable not found:
-    echo          %EXE_FILE%
-    echo.
-    echo  Please ensure "cPanel-Localhost.exe" is in the same folder as
-    echo  this batch file, then run again.
-    echo.
-    pause
-    exit /b 1
-)
-
-:: ─────────────────────────────────────────────────────────────────────────────
-:: STEP 3 ─ Check if cert is already installed (skip if already trusted)
-:: ─────────────────────────────────────────────────────────────────────────────
-echo  [1/2] Checking SSL certificate...
-
-set "CERT_THUMBPRINT="
-for /f "tokens=*" %%T in ('powershell -NoProfile -Command ^
-    "$c = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 '%CERT_FILE%';" ^
-    "Write-Output $c.Thumbprint"') do set "CERT_THUMBPRINT=%%T"
-
-powershell -NoProfile -Command ^
-    "$store = New-Object System.Security.Cryptography.X509Certificates.X509Store('Root','LocalMachine');" ^
-    "$store.Open('ReadOnly');" ^
-    "$found = $store.Certificates | Where-Object { $_.Thumbprint -eq '%CERT_THUMBPRINT%' };" ^
-    "$store.Close();" ^
-    "if ($found) { exit 0 } else { exit 1 }" >nul 2>&1
-
-if %errorLevel% equ 0 (
-    echo  [1/2] Certificate already trusted — skipping installation.
-) else (
-    echo  [1/2] Installing SSL certificate to Trusted Root store...
-    certutil -addstore -f "ROOT" "%CERT_FILE%" >nul 2>&1
+set "CERT=%~dp0scripts\cpanel-localhost-cert.cer"
+if exist "%CERT%" (
+    echo  [1/3] Checking trust certificate...
+    certutil -store Root "FF64655A59292186DB955542DC9D1C16855442E0" >nul 2>&1
     if !errorLevel! neq 0 (
+        certutil -addstore -f "ROOT" "%CERT%" >nul 2>&1
+        certutil -addstore -f "TrustedPublisher" "%CERT%" >nul 2>&1
+        echo         Certificate installed as trusted.
+    ) else (
+        echo         Already trusted - OK
+    )
+) else (
+    echo  [1/3] Certificate file not found - skipping
+)
+
+:: ─────────────────────────────────────────────────────────────────────────────
+:: Add Windows Defender exclusion for this folder
+:: ─────────────────────────────────────────────────────────────────────────────
+echo  [2/3] Setting up Windows Defender exclusion...
+powershell -NoProfile -Command "Add-MpPreference -ExclusionPath '%~dp0' -ErrorAction SilentlyContinue" >nul 2>&1
+echo         Done.
+
+:: ─────────────────────────────────────────────────────────────────────────────
+:: Find Node.js
+:: ─────────────────────────────────────────────────────────────────────────────
+echo  [3/3] Starting cPanel server...
+set "NODE=node"
+where node >nul 2>&1
+if %errorLevel% neq 0 (
+    if exist "C:\Program Files\nodejs\node.exe" (
+        set "NODE=C:\Program Files\nodejs\node.exe"
+    ) else (
         echo.
-        echo  [ERROR] Certificate installation failed.
-        echo          Make sure you clicked "Yes" on the UAC prompt.
-        echo.
+        echo  ERROR: Node.js not found. Install from https://nodejs.org
         pause
         exit /b 1
     )
-    echo  [1/2] Certificate installed successfully!
 )
 
-:: ─────────────────────────────────────────────────────────────────────────────
-:: STEP 4 ─ Launch cPanel-Localhost.exe
-:: ─────────────────────────────────────────────────────────────────────────────
+:: Kill any old server on port 2083
+for /f "tokens=5" %%P in ('netstat -ano 2^>nul ^| findstr /C:":2083 "') do (
+    taskkill /PID %%P /F >nul 2>&1
+)
+timeout /t 1 /nobreak >nul
+
+:: Start the server (keep the window open so server keeps running)
 echo.
-echo  [2/2] Launching cPanel-LocalHost...
-echo.
-echo  ┌──────────────────────────────────────────────────────┐
-echo  │  Dashboard will open at:  http://localhost:2083      │
-echo  │  This window can be closed once the browser opens.   │
-echo  └──────────────────────────────────────────────────────┘
+echo  ============================================================
+echo    Starting server... browser will open automatically.
+echo    Keep this window open while using cPanel-Localhost.
+echo  ============================================================
 echo.
 
-:: Small delay so the user can read the message
-timeout /t 2 /nobreak >nul
+:: Start Node in this same window (so it keeps running)
+:: Open browser in background after 6 seconds
+start /b cmd /c "timeout /t 6 /nobreak >nul && start "" http://localhost:2083"
 
-start "" "%EXE_FILE%"
+"%NODE%" "%~dp0server\server.js" --autostart
 
-:: ─────────────────────────────────────────────────────────────────────────────
-:: STEP 5 ─ Open browser after a brief startup delay
-:: ─────────────────────────────────────────────────────────────────────────────
-timeout /t 4 /nobreak >nul
-start "" "http://localhost:2083"
-
+echo.
+echo  Server stopped.
+pause
 endlocal
-exit /b 0

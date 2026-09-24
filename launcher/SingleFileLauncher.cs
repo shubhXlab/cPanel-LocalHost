@@ -480,25 +480,52 @@ namespace CPanelLocalhost
             {
                 try
                 {
-                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create("http://localhost:2083/api/xampp/mysql/start");
-                    req.Method = "POST";
-                    req.ContentType = "application/json";
-                    req.ContentLength = 0;
-                    req.Timeout = 5000;
-                    using (req.GetResponse()) { }
+                    // Step 1: Get CSRF token + session cookie
+                    CookieContainer cookies = new CookieContainer();
+                    string csrfToken = "";
 
+                    HttpWebRequest csrfReq = (HttpWebRequest)WebRequest.Create("http://localhost:2083/api/auth/csrf-token");
+                    csrfReq.CookieContainer = cookies;
+                    csrfReq.Method = "GET";
+                    csrfReq.Timeout = 5000;
+                    using (HttpWebResponse resp = (HttpWebResponse)csrfReq.GetResponse())
+                    using (StreamReader reader = new StreamReader(resp.GetResponseStream()))
+                    {
+                        string json = reader.ReadToEnd();
+                        // Simple parse: {"csrfToken":"..."}
+                        int start = json.IndexOf(":\"") + 2;
+                        int end = json.IndexOf("\"}", start);
+                        if (start > 1 && end > start) csrfToken = json.Substring(start, end - start);
+                    }
+
+                    // Step 2: Start MySQL
+                    byte[] empty = System.Text.Encoding.UTF8.GetBytes("{}");
+                    HttpWebRequest req1 = (HttpWebRequest)WebRequest.Create("http://localhost:2083/api/xampp/mysql/start");
+                    req1.Method = "POST";
+                    req1.ContentType = "application/json";
+                    req1.ContentLength = empty.Length;
+                    req1.Headers["X-CSRF-Token"] = csrfToken;
+                    req1.CookieContainer = cookies;
+                    req1.Timeout = 10000;
+                    req1.GetRequestStream().Write(empty, 0, empty.Length);
+                    using (req1.GetResponse()) { }
+
+                    // Step 3: Start Apache
                     HttpWebRequest req2 = (HttpWebRequest)WebRequest.Create("http://localhost:2083/api/xampp/apache/start");
                     req2.Method = "POST";
                     req2.ContentType = "application/json";
-                    req2.ContentLength = 0;
-                    req2.Timeout = 5000;
+                    req2.ContentLength = empty.Length;
+                    req2.Headers["X-CSRF-Token"] = csrfToken;
+                    req2.CookieContainer = cookies;
+                    req2.Timeout = 10000;
+                    req2.GetRequestStream().Write(empty, 0, empty.Length);
                     using (req2.GetResponse()) { }
 
                     trayIcon.ShowBalloonTip(2000, "Services Started", "Apache and MySQL services are active.", ToolTipIcon.Info);
                 }
                 catch (Exception ex)
                 {
-                    trayIcon.ShowBalloonTip(3000, "Services Status", "Could not start services via API: " + ex.Message, ToolTipIcon.Warning);
+                    trayIcon.ShowBalloonTip(3000, "Services Status", "Could not start services: " + ex.Message, ToolTipIcon.Warning);
                 }
             });
         }

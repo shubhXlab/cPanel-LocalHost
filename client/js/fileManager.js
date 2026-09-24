@@ -506,11 +506,16 @@ const fileManager = {
 
   // 9. Password Protect / Directory Privacy Modal
   async openDirectoryPrivacy(dirPath = '/public_html') {
+    const target = dirPath || '/public_html';
     const inputEl = document.getElementById('privacy-dir-input');
     const selectEl = document.getElementById('privacy-dir-select');
-    if (inputEl) inputEl.value = dirPath || '/public_html';
-
-    // Populate subdirectories in select dropdown
+    if (inputEl) inputEl.value = target;
+    // Clear inputs
+    const userEl = document.getElementById('privacy-user');
+    const passEl = document.getElementById('privacy-pass');
+    if (userEl) userEl.value = '';
+    if (passEl) passEl.value = '';
+    // Populate directory dropdown
     if (selectEl) {
       selectEl.innerHTML = '<option value="/public_html">/public_html</option>';
       try {
@@ -518,16 +523,109 @@ const fileManager = {
         if (res && res.items) {
           res.items.filter(i => i.isDir).forEach(d => {
             const opt = document.createElement('option');
-            opt.value = d.path;
-            opt.textContent = d.name;
-            if (d.path === dirPath) opt.selected = true;
+            opt.value = d.path; opt.textContent = d.name;
+            if (d.path === target) opt.selected = true;
             selectEl.appendChild(opt);
           });
         }
       } catch (e) {}
     }
-
+    // Load live status then open modal
+    await this.checkPrivacyStatus(target);
     cPanelApp.openModal('modal-fm-privacy');
+  },
+
+  async checkPrivacyStatus(dirPath) {
+    const cleanPath = (dirPath || '/public_html').trim();
+    const icon  = document.getElementById('privacy-status-icon');
+    const text  = document.getElementById('privacy-status-text');
+    const badge = document.getElementById('privacy-status-badge');
+    const banner = document.getElementById('privacy-status-banner');
+    const turnOffBtn = document.getElementById('btn-privacy-turn-off');
+    const authNameInput = document.getElementById('privacy-auth-name');
+    const usersSection = document.getElementById('privacy-users-section');
+
+    // Show spinner while checking
+    if (icon) icon.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="color:#94a3b8;"></i>';
+    if (text) { text.textContent = 'Checking...'; text.style.color = '#94a3b8'; }
+    if (badge) { badge.textContent = '—'; badge.style.background = '#e2e8f0'; badge.style.color = '#64748b'; }
+    if (banner) { banner.style.background = '#f1f5f9'; banner.style.borderColor = '#cbd5e1'; }
+
+    try {
+      const res = await cPanelApp.api(`/api/files/privacy-status?path=${encodeURIComponent(cleanPath)}`);
+      if (res && res.isProtected) {
+        if (banner) { banner.style.background = '#fff1f2'; banner.style.borderColor = '#fecdd3'; }
+        if (icon) icon.innerHTML = '<i class="fa-solid fa-shield-halved" style="color:#ef4444;font-size:16px;"></i>';
+        if (text) { text.innerHTML = `<span style="color:#be123c;">Protected</span> <span style="font-weight:400;color:#9f1239;font-size:11.5px;">— realm: "${res.authName || 'Restricted'}"</span>`; }
+        if (badge) { badge.textContent = '🔒 Active'; badge.style.background = '#ef4444'; badge.style.color = '#fff'; }
+        if (turnOffBtn) turnOffBtn.style.display = 'inline-flex';
+        if (authNameInput && res.authName) authNameInput.value = res.authName;
+        // Render user list
+        this.renderPrivacyUserList(cleanPath, res.users || []);
+      } else {
+        if (banner) { banner.style.background = '#f0fdf4'; banner.style.borderColor = '#bbf7d0'; }
+        if (icon) icon.innerHTML = '<i class="fa-solid fa-lock-open" style="color:#16a34a;font-size:16px;"></i>';
+        if (text) { text.innerHTML = '<span style="color:#166534;">Public — No protection</span>'; }
+        if (badge) { badge.textContent = '🔓 Open'; badge.style.background = '#22c55e'; badge.style.color = '#fff'; }
+        if (turnOffBtn) turnOffBtn.style.display = 'none';
+        if (usersSection) usersSection.style.display = 'none';
+      }
+    } catch (err) {
+      if (text) text.textContent = 'Could not load status';
+    }
+  },
+
+  renderPrivacyUserList(dirPath, users) {
+    const section = document.getElementById('privacy-users-section');
+    const list    = document.getElementById('privacy-users-list');
+    if (!list) return;
+    if (!users || users.length === 0) {
+      if (section) section.style.display = 'none';
+      return;
+    }
+    if (section) section.style.display = 'block';
+    list.innerHTML = users.map(u => `
+      <span style="display:inline-flex;align-items:center;gap:5px;background:#1e293b;color:#e2e8f0;padding:4px 10px;border-radius:20px;font-size:12.5px;font-weight:600;">
+        <i class="fa-solid fa-user" style="font-size:10px;color:#94a3b8;"></i>
+        ${u}
+        <button title="Remove user ${u}" onclick="fileManager.removePrivacyUser('${dirPath}','${u}')"
+          style="background:none;border:none;cursor:pointer;padding:0 0 0 4px;color:#f87171;font-size:12px;line-height:1;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </span>`).join('');
+  },
+
+  async removePrivacyUser(dirPath, username) {
+    if (!confirm(`Remove user "${username}" from directory protection?`)) return;
+    try {
+      const res = await cPanelApp.api('/api/files/privacy-remove-user', {
+        method: 'POST',
+        body: { dir: dirPath, username }
+      });
+      cPanelApp.showToast(`User "${username}" removed.`, 'success');
+      // Refresh the user list
+      this.renderPrivacyUserList(dirPath, res.remainingUsers || []);
+      if (!res.remainingUsers || res.remainingUsers.length === 0) {
+        // Auto-disable if no users remain
+        await this.checkPrivacyStatus(dirPath);
+      }
+    } catch (err) {
+      cPanelApp.showToast(err.message, 'error');
+    }
+  },
+
+  async disablePrivacy() {
+    const dir = (document.getElementById('privacy-dir-input') || {}).value || '/public_html';
+    try {
+      await cPanelApp.api('/api/files/protect-dir', {
+        method: 'POST', body: { dir, enabled: false }
+      });
+      cPanelApp.closeModal('modal-fm-privacy');
+      cPanelApp.showToast(`Protection REMOVED for "${dir}". Directory is now public.`, 'success');
+      if (this.currentPath) await this.navigateTo(this.currentPath);
+    } catch (err) {
+      cPanelApp.showToast(err.message, 'error');
+    }
   },
 
   openPrivacyModal(item) {
@@ -536,25 +634,23 @@ const fileManager = {
   },
 
   async submitPrivacy() {
-    const dirInput = document.getElementById('privacy-dir-input');
-    const dir = dirInput ? dirInput.value.trim() : '/public_html';
-    const enabled = document.getElementById('privacy-enabled').checked;
-    const authName = document.getElementById('privacy-auth-name').value.trim();
-    const username = document.getElementById('privacy-user').value.trim();
-    const password = document.getElementById('privacy-pass').value.trim();
+    const dir      = (document.getElementById('privacy-dir-input') || {}).value?.trim() || '/public_html';
+    const authName = (document.getElementById('privacy-auth-name') || {}).value?.trim() || 'Restricted Area';
+    const username = (document.getElementById('privacy-user') || {}).value?.trim();
+    const password = (document.getElementById('privacy-pass') || {}).value?.trim();
 
-    if (enabled && (!username || !password)) {
-      cPanelApp.showToast('Please enter an authorized username and password to protect the directory.', 'warning');
+    if (!username || !password) {
+      cPanelApp.showToast('Enter a username and password to protect the directory.', 'warning');
       return;
     }
 
     try {
       await cPanelApp.api('/api/files/protect-dir', {
         method: 'POST',
-        body: { dir, authName, username, password, enabled }
+        body: { dir, authName, username, password, enabled: true }
       });
       cPanelApp.closeModal('modal-fm-privacy');
-      cPanelApp.showToast(enabled ? `Directory Privacy enabled for "${dir}"!` : `Directory Privacy disabled for "${dir}"!`, 'success');
+      cPanelApp.showToast(`✅ Directory "${dir}" is now password-protected!`, 'success');
       if (this.currentPath) await this.navigateTo(this.currentPath);
     } catch (err) {
       cPanelApp.showToast(err.message, 'error');

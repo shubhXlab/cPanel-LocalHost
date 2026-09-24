@@ -20,6 +20,9 @@ cPanel-Localhost.exe
 cPanel.exe
 landing/*.exe
 landing/*.zip
+setup-stage/
+*.pfx
+*.tmp*
 
 # Bundled XAMPP distribution (heavy vendor binaries)
 xampp/

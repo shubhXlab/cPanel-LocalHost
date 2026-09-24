@@ -287,7 +287,6 @@ class PanelDatabase {
 
   // --- Domains & VHosts ---
   getDomains() {
-    this.data = this.loadData();
     if (!this.data.domains) this.data.domains = [];
     const hasPrimary = this.data.domains.some(d => d.domain === 'localhost');
     if (!hasPrimary) {
@@ -306,8 +305,6 @@ class PanelDatabase {
   }
 
   addDomain(domainData) {
-    this.data = this.loadData();
-    if (!this.data.domains) this.data.domains = [];
     const domain = Object.assign({
       id: 'dom_' + Date.now(),
       createdAt: new Date().toISOString()
@@ -318,8 +315,6 @@ class PanelDatabase {
   }
 
   removeDomain(id) {
-    this.data = this.loadData();
-    if (!this.data.domains) this.data.domains = [];
     this.data.domains = this.data.domains.filter(d => d.id !== id && d.type !== 'primary');
     this.saveData();
   }
@@ -378,7 +373,6 @@ class PanelDatabase {
 
   // --- Redirects ---
   getRedirects() {
-    this.data = this.loadData();
     return this.data.redirects || [];
   }
 
@@ -407,7 +401,6 @@ class PanelDatabase {
 
   // --- Zone Records ---
   getZoneRecords(domain = null) {
-    this.data = this.loadData();
     const list = this.data.zoneRecords || [];
     if (domain && domain !== 'all') {
       return list.filter(r => r.domain.toLowerCase() === domain.toLowerCase());

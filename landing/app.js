@@ -148,7 +148,7 @@ function initShowcaseTabs() {
    ========================================================================== */
 const TERMINAL_COMMANDS = {
   help: () => `
-<div class="term-info">⚡ cPanel Localhost v1.0.0 CLI Command Center</div>
+<div class="term-info">[CPANEL] cPanel Localhost v1.0.0 CLI Command Center</div>
 <div class="term-dim">Available interactive commands:</div>
   <span class="term-prompt">status</span>         - Display status of XAMPP, Apache, MySQL & cPanel Daemon
   <span class="term-prompt">vhost list</span>     - List all registered virtual hosts & local domains
@@ -163,12 +163,12 @@ const TERMINAL_COMMANDS = {
 
   status: () => `
 <div class="term-success">[OK] cPanel Localhost Daemon: RUNNING on PID 11988</div>
-  ├─ Web Interface:    <span class="term-info">http://localhost:2083</span> (SSL / Jupiter Theme)
-  ├─ HTTP Fallback:    <span class="term-info">http://localhost:2082</span>
-  ├─ Apache Server:    <span class="term-success">RUNNING</span> on Port 80 (v2.4.58 Win64)
-  ├─ MariaDB/MySQL:    <span class="term-success">RUNNING</span> on Port 3306 (10.4.32-MariaDB)
-  ├─ XAMPP Root:       <span class="term-dim">C:\\xampp</span> [Auto-Discovered]
-  └─ AI Gateway:       <span class="term-info">ENABLED</span> (OpenAPI 3.0 / Bearer Auth Ready)
+  |-- Web Interface:    <span class="term-info">http://localhost:2083</span> (SSL / Jupiter Theme)
+  |-- HTTP Fallback:    <span class="term-info">http://localhost:2082</span>
+  |-- Apache Server:    <span class="term-success">RUNNING</span> on Port 80 (v2.4.58 Win64)
+  |-- MariaDB/MySQL:    <span class="term-success">RUNNING</span> on Port 3306 (10.4.32-MariaDB)
+  |-- XAMPP Root:       <span class="term-dim">C:\\xampp</span> [Auto-Discovered]
+  \-- AI Gateway:       <span class="term-info">ENABLED</span> (OpenAPI 3.0 / Bearer Auth Ready)
 `,
 
   "vhost list": () => `
@@ -183,7 +183,7 @@ const TERMINAL_COMMANDS = {
   "token create": () => {
     const fakeToken = "cptok_" + Array.from({length: 32}, () => Math.floor(Math.random()*16).toString(16)).join("");
     return `
-<div class="term-success">✔ AI Bearer API Token successfully generated!</div>
+<div class="term-success">[OK] AI Bearer API Token successfully generated!</div>
   Token:  <span class="term-prompt">${fakeToken}</span>
   Scopes: [file_manager, mysql_orchestration, vhost_sync, cron_scheduler]
   Format: Authorization: Bearer ${fakeToken}
@@ -216,7 +216,7 @@ License:       MIT License
 
   download: () => {
     triggerDownload("cPanel-Localhost.exe");
-    return `<div class="term-success">🚀 Download initiated: cPanel-Localhost.exe (132 MB)</div>`;
+    return `<div class="term-success">[DOWNLOAD] Download initiated: cPanel-Localhost.exe (132 MB)</div>`;
   }
 };
 
@@ -256,10 +256,10 @@ function initTerminalSimulator() {
       const domainName = parts[2] || "mysite.test";
       appendLine(`
         <div class="term-info">Configuring virtual host for '${escapeHtml(domainName)}'...</div>
-        <div>  ├─ Allocating document root: C:\\xampp\\htdocs\\${escapeHtml(domainName.split('.')[0])}</div>
-        <div>  ├─ Appending to C:\\xampp\\apache\\conf\\extra\\httpd-vhosts.conf</div>
-        <div>  ├─ Updating Windows hosts file: 127.0.0.1 ${escapeHtml(domainName)}</div>
-        <div class="term-success">✔ Virtual Host '${escapeHtml(domainName)}' is LIVE at http://${escapeHtml(domainName)}</div>
+        <div>  |-- Allocating document root: C:\\xampp\\htdocs\\${escapeHtml(domainName.split('.')[0])}</div>
+        <div>  |-- Appending to C:\\xampp\\apache\\conf\\extra\\httpd-vhosts.conf</div>
+        <div>  |-- Updating Windows hosts file: 127.0.0.1 ${escapeHtml(domainName)}</div>
+        <div class="term-success">[OK] Virtual Host '${escapeHtml(domainName)}' is LIVE at http://${escapeHtml(domainName)}</div>
       `);
       return;
     }

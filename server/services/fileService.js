@@ -350,8 +350,63 @@ const fileService = {
     return fullPath;
   },
 
-  // Password Protect / Directory Privacy
+  // Get Directory Privacy Status
+  async getPrivacyStatus(dirRel) {
+    const fullDir = resolveSafePath(dirRel);
+    if (!fs.existsSync(fullDir)) throw new Error('Directory does not exist');
+
+    const htaccessPath = path.join(fullDir, '.htaccess');
+    let isProtected = false;
+    let authName = 'Restricted Directory';
+    let authUserFile = '';
+    const users = [];
+
+    if (fs.existsSync(htaccessPath)) {
+      const content = fs.readFileSync(htaccessPath, 'utf8');
+      const privacyMatch = content.match(/# BEGIN cPanel Directory Privacy([\s\S]*?)# END cPanel Directory Privacy/);
+      if (privacyMatch) {
+        isProtected = true;
+        const nameMatch = privacyMatch[1].match(/AuthName\s+"([^"]+)"/i);
+        if (nameMatch) authName = nameMatch[1];
+        const fileMatch = privacyMatch[1].match(/AuthUserFile\s+"([^"]+)"/i);
+        if (fileMatch) authUserFile = fileMatch[1];
+      }
+    }
+
+    // Resolve .htpasswd path: per-dir file takes priority
+    const passDir = path.join(ROOT_PATH, '.htpasswds');
+    const cleanDir = toRelativePath(fullDir).replace(/^\/+|\/+$/g, '').replace(/[\/\\]+/g, '_') || 'root';
+    const perDirHtpasswd  = path.join(passDir, `${cleanDir}.htpasswd`);
+    const fallbackHtpasswd = path.join(passDir, '.htpasswd');
+
+    let targetHtpasswd = null;
+    if (authUserFile && fs.existsSync(authUserFile)) {
+      targetHtpasswd = authUserFile;
+    } else if (fs.existsSync(perDirHtpasswd)) {
+      targetHtpasswd = perDirHtpasswd;
+    } else if (fs.existsSync(fallbackHtpasswd)) {
+      targetHtpasswd = fallbackHtpasswd;
+    }
+
+    if (targetHtpasswd && fs.existsSync(targetHtpasswd)) {
+      try {
+        const lines = fs.readFileSync(targetHtpasswd, 'utf8').split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith('#')) {
+            const u = trimmed.split(':')[0];
+            if (u && !users.includes(u)) users.push(u);
+          }
+        }
+      } catch (e) {}
+    }
+
+    return { isProtected, authName, users, dir: toRelativePath(fullDir), htpasswdPath: targetHtpasswd };
+  },
+
+  // Password Protect / Directory Privacy  (SHA-1 fixed + per-dir .htpasswd)
   async protectDirectory(dirRel, authName, username, password, enabled = true) {
+    const crypto = require('crypto');
     const fullDir = resolveSafePath(dirRel);
     if (!fs.existsSync(fullDir)) throw new Error('Directory does not exist');
 
@@ -360,22 +415,78 @@ const fileService = {
     if (!fs.existsSync(passDir)) {
       try { fs.mkdirSync(passDir, { recursive: true }); } catch (e) {}
     }
-    const htpasswdFile = path.join(passDir, '.htpasswd').replace(/\\/g, '/');
 
-    if (username && password) {
-      fs.appendFileSync(path.join(passDir, '.htpasswd'), `${username}:{SHA}${Buffer.from(password).toString('base64')}\n`, 'utf8');
-    }
+    // Per-directory .htpasswd (e.g. public_html_shubh.htpasswd)
+    const cleanDir = toRelativePath(fullDir).replace(/^\/+|\/+$/g, '').replace(/[\/\\]+/g, '_') || 'root';
+    const physicalHtpasswd = path.join(passDir, `${cleanDir}.htpasswd`);
+    const htpasswdForApache = physicalHtpasswd.replace(/\\/g, '/');
 
+    // Strip old block from .htaccess
     let htaccessContent = fs.existsSync(htaccessPath) ? fs.readFileSync(htaccessPath, 'utf8') : '';
-    htaccessContent = htaccessContent.replace(/# BEGIN cPanel Directory Privacy[\s\S]*?# END cPanel Directory Privacy\n?/g, '');
+    htaccessContent = htaccessContent.replace(/# BEGIN cPanel Directory Privacy[\s\S]*?# END cPanel Directory Privacy\n?/g, '').trim();
 
-    if (enabled) {
-      const block = `# BEGIN cPanel Directory Privacy\nAuthType Basic\nAuthName "${authName || 'Restricted Area'}"\nAuthUserFile "${htpasswdFile}"\nRequire valid-user\n# END cPanel Directory Privacy\n`;
-      htaccessContent = block + htaccessContent;
+    if (!enabled) {
+      // Disable: just write .htaccess without the privacy block
+      fs.writeFileSync(htaccessPath, htaccessContent ? htaccessContent + '\n' : '', 'utf8');
+      return { success: true, dir: toRelativePath(fullDir), enabled: false };
     }
 
-    fs.writeFileSync(htaccessPath, htaccessContent.trim() + '\n', 'utf8');
-    return { success: true, dir: toRelativePath(fullDir), enabled, authName };
+    // Enabled: write/update credentials with real SHA-1 hash
+    if (username && password) {
+      const sha1b64 = crypto.createHash('sha1').update(password).digest('base64');
+      const newEntry = `${username}:{SHA}${sha1b64}`;
+
+      let entries = [];
+      if (fs.existsSync(physicalHtpasswd)) {
+        entries = fs.readFileSync(physicalHtpasswd, 'utf8')
+          .split('\n').map(l => l.trim()).filter(Boolean);
+      }
+      const idx = entries.findIndex(e => e.startsWith(`${username}:`));
+      if (idx !== -1) entries[idx] = newEntry;
+      else entries.push(newEntry);
+
+      fs.writeFileSync(physicalHtpasswd, entries.join('\n') + '\n', 'utf8');
+    } else {
+      // No new creds — must have existing users
+      const hasUsers = fs.existsSync(physicalHtpasswd) &&
+        fs.readFileSync(physicalHtpasswd, 'utf8').split('\n').some(l => l.trim() && !l.trim().startsWith('#'));
+      if (!hasUsers) throw new Error('Enter a username and password to protect this directory.');
+    }
+
+    const block = `# BEGIN cPanel Directory Privacy\nAuthType Basic\nAuthName "${authName || 'Restricted Area'}"\nAuthUserFile "${htpasswdForApache}"\nRequire valid-user\n# END cPanel Directory Privacy\n`;
+    const finalContent = block + (htaccessContent ? '\n' + htaccessContent + '\n' : '');
+    fs.writeFileSync(htaccessPath, finalContent, 'utf8');
+    return { success: true, dir: toRelativePath(fullDir), enabled: true, authName: authName || 'Restricted Area' };
+  },
+
+  // Remove a specific user from directory's .htpasswd
+  async removePrivacyUser(dirRel, username) {
+    if (!username) throw new Error('Username is required');
+    const fullDir = resolveSafePath(dirRel);
+    if (!fs.existsSync(fullDir)) throw new Error('Directory does not exist');
+
+    const passDir = path.join(ROOT_PATH, '.htpasswds');
+    const cleanDir = toRelativePath(fullDir).replace(/^\/+|\/+$/g, '').replace(/[\/\\]+/g, '_') || 'root';
+    const physicalHtpasswd = path.join(passDir, `${cleanDir}.htpasswd`);
+
+    // Also check .htaccess AuthUserFile to find the right file
+    const htaccessPath = path.join(fullDir, '.htaccess');
+    let targetFile = physicalHtpasswd;
+    if (fs.existsSync(htaccessPath)) {
+      const content = fs.readFileSync(htaccessPath, 'utf8');
+      const m = content.match(/AuthUserFile\s+"([^"]+)"/i);
+      if (m && fs.existsSync(m[1])) targetFile = m[1];
+    }
+
+    if (!fs.existsSync(targetFile)) throw new Error('No .htpasswd file found for this directory');
+
+    const lines = fs.readFileSync(targetFile, 'utf8').split('\n').map(l => l.trim()).filter(Boolean);
+    const filtered = lines.filter(l => !l.startsWith(`${username}:`));
+
+    if (filtered.length === lines.length) throw new Error(`User "${username}" not found`);
+
+    fs.writeFileSync(targetFile, filtered.length ? filtered.join('\n') + '\n' : '', 'utf8');
+    return { success: true, dir: toRelativePath(fullDir), removed: username, remainingUsers: filtered.map(l => l.split(':')[0]) };
   },
 
   // Set Directory Indices
