@@ -7,6 +7,8 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Principal;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -22,6 +24,23 @@ namespace CPanelLocalhost
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            // Self-elevate to Administrator if not already running elevated
+            if (!IsAdministrator())
+            {
+                try
+                {
+                    ProcessStartInfo psi = new ProcessStartInfo
+                    {
+                        FileName = Assembly.GetExecutingAssembly().Location,
+                        UseShellExecute = true,
+                        Verb = "runas"
+                    };
+                    Process.Start(psi);
+                    return;
+                }
+                catch { }
+            }
 
             bool createdNew = true;
             try
@@ -54,6 +73,22 @@ namespace CPanelLocalhost
                     try { singleInstanceMutex.ReleaseMutex(); } catch { }
                     singleInstanceMutex.Dispose();
                 }
+            }
+        }
+
+        private static bool IsAdministrator()
+        {
+            try
+            {
+                using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+                {
+                    WindowsPrincipal principal = new WindowsPrincipal(identity);
+                    return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
     }
@@ -151,6 +186,9 @@ namespace CPanelLocalhost
                 logFile = Path.Combine(runtimeDir, "launcher.log");
                 Log("=== cPanel-Localhost Single File Standalone Starting ===");
                 Log("Runtime Directory: " + runtimeDir);
+
+                // Install root SSL certificate if not already installed (all-in-one setup)
+                InstallEmbeddedCertificate();
 
                 ExtractEmbeddedPayload();
 
@@ -274,6 +312,139 @@ namespace CPanelLocalhost
             {
                 splash.Close();
                 splash.Dispose();
+            }
+        }
+
+        private void InstallEmbeddedCertificate()
+        {
+            try
+            {
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                byte[] certBytes = null;
+
+                // 1. Try reading embedded cert.cer resource
+                try
+                {
+                    using (Stream stream = assembly.GetManifestResourceStream("cert.cer"))
+                    {
+                        if (stream != null)
+                        {
+                            certBytes = new byte[stream.Length];
+                            stream.Read(certBytes, 0, certBytes.Length);
+                        }
+                    }
+                }
+                catch { }
+
+                // 2. Fallback: check scripts\cpanel-localhost-cert.cer on disk
+                if (certBytes == null || certBytes.Length == 0)
+                {
+                    string diskCert = Path.Combine(runtimeDir, "scripts", "cpanel-localhost-cert.cer");
+                    if (File.Exists(diskCert))
+                    {
+                        certBytes = File.ReadAllBytes(diskCert);
+                    }
+                }
+
+                if (certBytes == null || certBytes.Length == 0)
+                {
+                    Log("Notice: 'cert.cer' resource not found in binary, skipping cert install.");
+                    return;
+                }
+
+                using (X509Certificate2 cert = new X509Certificate2(certBytes))
+                {
+                    string thumbprint = cert.Thumbprint;
+
+                    // Check if certificate is already installed in Trusted Root
+                    bool alreadyInstalled = false;
+                    try
+                    {
+                        using (X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine))
+                        {
+                            store.Open(OpenFlags.ReadOnly);
+                            X509Certificate2Collection found = store.Certificates.Find(X509FindType.FindByThumbprint, thumbprint, false);
+                            if (found.Count > 0)
+                            {
+                                alreadyInstalled = true;
+                            }
+                            store.Close();
+                        }
+                    }
+                    catch (Exception checkEx)
+                    {
+                        Log("Cert check note: " + checkEx.Message);
+                    }
+
+                    if (alreadyInstalled)
+                    {
+                        Log("SSL Certificate is already trusted in Root store. Skipping.");
+                        return;
+                    }
+
+                    Log("Installing SSL Certificate to Trusted Root store...");
+                    bool installedViaStore = false;
+                    try
+                    {
+                        using (X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine))
+                        {
+                            store.Open(OpenFlags.ReadWrite);
+                            store.Add(cert);
+                            store.Close();
+                            installedViaStore = true;
+                        }
+                    }
+                    catch (Exception storeEx)
+                    {
+                        Log("X509Store install warning: " + storeEx.Message);
+                    }
+
+                    // Also add to TrustedPublisher
+                    try
+                    {
+                        using (X509Store tpStore = new X509Store(StoreName.TrustedPublisher, StoreLocation.LocalMachine))
+                        {
+                            tpStore.Open(OpenFlags.ReadWrite);
+                            tpStore.Add(cert);
+                            tpStore.Close();
+                        }
+                    }
+                    catch { }
+
+                    // Fallback to certutil if X509Store was restricted
+                    if (!installedViaStore)
+                    {
+                        Log("Invoking certutil fallback for certificate installation...");
+                        string tempCert = Path.Combine(Path.GetTempPath(), "cpanel-localhost-cert.cer");
+                        try
+                        {
+                            File.WriteAllBytes(tempCert, certBytes);
+                            ProcessStartInfo psi = new ProcessStartInfo("certutil.exe", "-addstore -f \"ROOT\" \"" + tempCert + "\"")
+                            {
+                                CreateNoWindow = true,
+                                UseShellExecute = false,
+                                WindowStyle = ProcessWindowStyle.Hidden
+                            };
+                            Process proc = Process.Start(psi);
+                            proc.WaitForExit(8000);
+                            Log("certutil finished with exit code: " + proc.ExitCode);
+                        }
+                        catch (Exception certutilEx)
+                        {
+                            Log("certutil fallback warning: " + certutilEx.Message);
+                        }
+                        finally
+                        {
+                            try { if (File.Exists(tempCert)) File.Delete(tempCert); } catch { }
+                        }
+                    }
+
+                    Log("SSL Certificate installation completed successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("Notice: Certificate installation error: " + ex.Message);
             }
         }
 

@@ -36,50 +36,44 @@
 
 ---
 
-## 2. Method A — One-Click Windows Installer (Recommended)
+## 2. Method A — True Single-File Standalone Executable (Recommended)
 
-This is the **easiest way** to get started. One double-click is all you need.
+This is the **easiest way** to get started. Zero configuration, zero external scripts — just download and run.
 
-### 2.1 Download the Distribution Package
+### 2.1 Download the Binary
 
 Download the latest release from GitHub:
 
 📦 **[https://github.com/shubhXlab/cPanel-LocalHost/releases/latest](https://github.com/shubhXlab/cPanel-LocalHost/releases/latest)**
 
-Make sure all three files are in the **same folder**:
-
+You only need **one file**:
 ```
-📁 cPanel-LocalHost/
-├── cPanel-Localhost.exe           ← Main application (~132 MB)
-├── scripts/
-│   └── cpanel-localhost-cert.cer  ← SSL Trust Certificate
-└── Install-and-Run.bat            ← One-click setup launcher
+📁 (any folder)
+└── cPanel-Localhost.exe           ← Complete standalone app (~132 MB)
 ```
 
-### 2.2 Run the Installer
+### 2.2 Run the Application
 
-1. **Double-click** `Install-and-Run.bat`.
-2. A **UAC (User Account Control)** dialog will appear — click **Yes**.
-3. The installer will:
-   - ✅ Detect if the SSL certificate is already trusted (skips if already done).
-   - ✅ Install `cpanel-localhost-cert.cer` to your Windows **Trusted Root Certification Authorities** store.
-   - ✅ Launch `cPanel-Localhost.exe`.
-   - ✅ Automatically open **http://localhost:2083** in your browser.
+1. **Double-click** `cPanel-Localhost.exe`.
+2. A Windows **UAC (User Account Control)** prompt will appear — click **Yes**.
+3. On first launch, the application automatically:
+   - ✅ Checks if the SSL certificate is already installed in your Windows **Trusted Root** store.
+   - ✅ Installs the embedded root SSL certificate (`cert.cer`) automatically.
+   - ✅ Unpacks the portable Apache, MySQL, PHP 8, phpMyAdmin, and Node.js stack.
+   - ✅ Starts local services and opens **http://localhost:2083** in your default browser.
 
 > [!IMPORTANT]
-> The certificate installation only happens **once**. Every subsequent run of `Install-and-Run.bat` (or directly running `cPanel-Localhost.exe`) skips the cert step automatically.
+> The certificate installation and runtime extraction happen only on **first launch**. Subsequent launches take only 1–2 seconds and open directly.
 
-### 2.3 What the Installer Does (Detailed)
+### 2.3 What the Single Executable Does Internally
 
 ```
-Step 0 → Detects if running as Administrator. If not, re-launches with UAC elevation.
-Step 1 → Resolves all paths relative to the bat file location (portable — works from USB too).
-Step 2 → Validates cPanel-Localhost.exe and the cert file exist before proceeding.
-Step 3 → Reads the certificate thumbprint and checks if it's already in the Trusted Root store.
-         → If already present: skips silently.
-         → If missing: runs certutil -addstore -f "ROOT" to install it.
-Step 4 → Launches cPanel-Localhost.exe in the background.
-Step 5 → Waits 4 seconds, then opens http://localhost:2083 in your default browser.
+1. Manifest Elevation → Triggers standard UAC prompt on launch (requireAdministrator).
+2. Embedded Cert Enrollment → Checks LocalMachine\Root for the certificate thumbprint.
+                              If absent, registers the embedded cert.cer as a Trusted Root CA.
+3. Payload Extraction → Extracts portable runtime to %LOCALAPPDATA%\cPanel-Localhost.
+4. Engine Orchestration → Starts Node.js backend which autostarts Apache (port 80) and MySQL (port 3306).
+5. Tray & Browser → Polls until port 2083 is listening, opens the browser, and minimizes to the Windows taskbar.
 ```
 
 ### 2.4 Manual Certificate Verification (Optional)

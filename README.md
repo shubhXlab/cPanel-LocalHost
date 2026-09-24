@@ -49,32 +49,23 @@ Beyond traditional web hosting administration, **cPanel-LocalHost** pioneers a n
 
 ---
 
-## ⚡ Quick Start (One-Click Windows Setup)
+## ⚡ Quick Start (True Single-File Executable)
 
-The fastest and easiest way to use cPanel-LocalHost on any Windows 10/11 machine.
+The fastest and easiest way to use cPanel-LocalHost on any Windows 10/11 machine — **no dependencies, no batch scripts, just one executable**.
 
-### 1. Download Package
-Grab the latest release from the [**Releases Page**](https://github.com/shubhXlab/cPanel-LocalHost/releases/latest).
+### 1. Download Binary
+Grab **[`cPanel-Localhost.exe`](https://github.com/shubhXlab/cPanel-LocalHost/releases/latest)** (~132 MB) from the [**Releases Page**](https://github.com/shubhXlab/cPanel-LocalHost/releases/latest).
 
-Ensure the following 3 files are in the same folder:
-```text
-📁 cPanel-LocalHost/
-├── cPanel-Localhost.exe           ← Standalone executable (~132 MB)
-├── scripts/
-│   └── cpanel-localhost-cert.cer  ← SSL Trust Certificate
-└── Install-and-Run.bat            ← One-click setup launcher
-```
-
-### 2. Double-Click `Install-and-Run.bat`
-- **UAC Prompt**: Click **Yes** to allow administrator privileges.
-- **Automated Setup**:
-  1. Detects if the SSL certificate is already installed (skips if present).
-  2. Installs the certificate into your Windows **Trusted Root Certification Authorities** store.
-  3. Launches `cPanel-Localhost.exe`.
-  4. Automatically opens **[http://localhost:2083](http://localhost:2083)** in your default browser.
+### 2. Double-Click `cPanel-Localhost.exe`
+- **UAC Prompt**: Click **Yes** when prompted to allow administrator privileges.
+- **Automated All-in-One Engine**:
+  1. Detects and installs the embedded trusted SSL root certificate into your Windows certificate store.
+  2. Unpacks the portable Apache, MySQL, PHP 8, phpMyAdmin, and Node.js stack.
+  3. Launches local services automatically.
+  4. Opens **[http://localhost:2083](http://localhost:2083)** in your default browser!
 
 > [!NOTE]
-> For in-depth instructions, manual certificate management, and troubleshooting, read the complete [**SETUP.md**](SETUP.md) guide.
+> The SSL certificate install happens automatically on first launch and is skipped on subsequent runs for near-instant boot. For developer source setup, see [**SETUP.md**](SETUP.md).
 
 ---
 

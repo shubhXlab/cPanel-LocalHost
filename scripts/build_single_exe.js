@@ -73,10 +73,11 @@ async function createPayload() {
   archive.file(path.join(appRoot, 'package.json'), { name: 'package.json' });
   archive.file(path.join(appRoot, 'bin', 'node.exe'), { name: 'bin/node.exe' });
 
-  console.log(' -> Adding server, client, data, node_modules...');
+  console.log(' -> Adding server, client, data, scripts, node_modules...');
   archive.directory(path.join(appRoot, 'server'), 'server');
   archive.directory(path.join(appRoot, 'client'), 'client');
   archive.directory(path.join(appRoot, 'data'), 'data');
+  archive.directory(path.join(appRoot, 'scripts'), 'scripts');
   archive.directory(path.join(appRoot, 'node_modules'), 'node_modules');
 
   // XAMPP portable components
@@ -175,7 +176,8 @@ async function main() {
   // 2. Compile Release Single-File Executable
   console.log('[Step 2/4] Compiling release 64-bit cPanel-Localhost.exe with manifest & metadata...');
   const launcherSource = path.join(appRoot, 'launcher', 'SingleFileLauncher.cs');
-  const compileCmd = `"${cscPath}" /nologo /target:winexe /platform:x64 /out:"${outputExePath}" /win32manifest:"${manifestPath}" /win32icon:"${iconPath}" /resource:"${payloadZipPath}",payload.zip /r:System.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll "${launcherSource}" "${assemblyInfoPath}"`;
+  const certPath = path.join(appRoot, 'scripts', 'cpanel-localhost-cert.cer');
+  const compileCmd = `"${cscPath}" /nologo /target:winexe /platform:x64 /out:"${outputExePath}" /win32manifest:"${manifestPath}" /win32icon:"${iconPath}" /resource:"${payloadZipPath}",payload.zip /resource:"${certPath}",cert.cer /r:System.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll "${launcherSource}" "${assemblyInfoPath}"`;
 
   execSync(compileCmd, { cwd: appRoot, stdio: 'inherit' });
   const exeStats = fs.statSync(outputExePath);
