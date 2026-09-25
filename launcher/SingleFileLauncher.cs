@@ -191,6 +191,7 @@ namespace CPanelLocalhost
                 InstallEmbeddedCertificate();
 
                 ExtractEmbeddedPayload();
+                EnsureXamppAndPublicHtml();
 
                 nodeExe = Path.Combine(runtimeDir, "bin", "node.exe");
                 if (!File.Exists(nodeExe))
@@ -292,6 +293,11 @@ namespace CPanelLocalhost
                                 {
                                     continue;
                                 }
+                                // Preserve existing user files in public_html on subsequent updates
+                                if (entry.FullName.StartsWith("xampp/htdocs/public_html/") && File.Exists(completeFileName))
+                                {
+                                    continue;
+                                }
                                 try
                                 {
                                     entry.ExtractToFile(completeFileName, true);
@@ -307,11 +313,53 @@ namespace CPanelLocalhost
                 }
                 try { if (!string.IsNullOrEmpty(currentStamp)) File.WriteAllText(versionFile, currentStamp); } catch { }
                 Log("Embedded payload extracted successfully!");
+                EnsureXamppAndPublicHtml();
             }
             finally
             {
                 splash.Close();
                 splash.Dispose();
+            }
+        }
+
+        private void EnsureXamppAndPublicHtml()
+        {
+            try
+            {
+                // On first run check if xampp exists, if not create that and then public_html
+                string xamppDir = Path.Combine(runtimeDir, "xampp");
+                if (!Directory.Exists(xamppDir))
+                {
+                    Directory.CreateDirectory(xamppDir);
+                    Log("Created xampp directory: " + xamppDir);
+                }
+
+                string htdocsDir = Path.Combine(xamppDir, "htdocs");
+                if (!Directory.Exists(htdocsDir))
+                {
+                    Directory.CreateDirectory(htdocsDir);
+                    Log("Created htdocs directory: " + htdocsDir);
+                }
+
+                string publicHtmlDir = Path.Combine(htdocsDir, "public_html");
+                if (!Directory.Exists(publicHtmlDir))
+                {
+                    Directory.CreateDirectory(publicHtmlDir);
+                    Log("Created clean empty public_html directory: " + publicHtmlDir);
+                }
+
+                // If host machine has C:\xampp, also ensure C:\xampp\htdocs\public_html exists
+                if (Directory.Exists(@"C:\xampp"))
+                {
+                    string extHtdocs = @"C:\xampp\htdocs";
+                    if (!Directory.Exists(extHtdocs)) Directory.CreateDirectory(extHtdocs);
+                    string extPublicHtml = Path.Combine(extHtdocs, "public_html");
+                    if (!Directory.Exists(extPublicHtml)) Directory.CreateDirectory(extPublicHtml);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("Notice ensuring public_html directory: " + ex.Message);
             }
         }
 

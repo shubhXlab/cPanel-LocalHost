@@ -32,6 +32,18 @@ try {
   }
 } catch (e) {}
 
+// Release file lock by unlinking or renaming outputExePath if needed
+try {
+  if (fs.existsSync(outputExePath)) {
+    try {
+      fs.unlinkSync(outputExePath);
+    } catch (e) {
+      const tempOld = path.join(appRoot, `cPanel-Localhost.old_${Date.now()}.exe`);
+      fs.renameSync(outputExePath, tempOld);
+    }
+  }
+} catch (e) {}
+
 // Helper to add directory recursively with filters
 function addDirToArchive(archive, srcDir, destPrefix, filterFn) {
   if (!fs.existsSync(srcDir)) return;
@@ -73,12 +85,15 @@ async function createPayload() {
   archive.file(path.join(appRoot, 'package.json'), { name: 'package.json' });
   archive.file(path.join(appRoot, 'bin', 'node.exe'), { name: 'bin/node.exe' });
 
-  console.log(' -> Adding server, client, data, scripts, node_modules...');
+  console.log(' -> Adding server, client, scripts, node_modules...');
   archive.directory(path.join(appRoot, 'server'), 'server');
   archive.directory(path.join(appRoot, 'client'), 'client');
-  archive.directory(path.join(appRoot, 'data'), 'data');
   archive.directory(path.join(appRoot, 'scripts'), 'scripts');
   archive.directory(path.join(appRoot, 'node_modules'), 'node_modules');
+
+  // Add clean data directory structure without user-specific store/sessions
+  archive.append('', { name: 'data/.gitkeep' });
+  archive.append('', { name: 'data/vhosts/.gitkeep' });
 
   // XAMPP portable components
   console.log(` -> Packaging portable Apache from ${path.join(sourceXamppDir, 'apache')}...`);
@@ -114,7 +129,8 @@ async function createPayload() {
   addDirToArchive(archive, path.join(sourceXamppDir, 'mysql', 'share'), 'xampp/mysql/share');
   
   const mysqlDataDir = path.join(sourceXamppDir, 'mysql', 'data');
-  const allowedDatabases = new Set(['mysql', 'performance_schema', 'phpmyadmin', 'app_db']);
+  // Only package pristine system databases - never user-created databases
+  const allowedDatabases = new Set(['mysql', 'performance_schema', 'phpmyadmin']);
   const mysqlDataEntries = fs.readdirSync(mysqlDataDir, { withFileTypes: true });
   for (const entry of mysqlDataEntries) {
     const fullPath = path.join(mysqlDataDir, entry.name);
@@ -146,14 +162,10 @@ async function createPayload() {
   if (fs.existsSync(path.join(htdocsDir, '.htaccess'))) {
     archive.file(path.join(htdocsDir, '.htaccess'), { name: 'xampp/htdocs/.htaccess' });
   }
-  const publicHtmlDir = path.join(htdocsDir, 'public_html');
-  if (fs.existsSync(publicHtmlDir)) {
-    addDirToArchive(archive, publicHtmlDir, 'xampp/htdocs/public_html', (srcPath) => {
-      const lower = srcPath.toLowerCase();
-      if (lower.includes('\\wordpress') || lower.includes('/wordpress')) return false;
-      return true;
-    });
-  }
+
+  // Create empty public_html folder - do NOT include any user-created files from this PC
+  console.log(' -> Packaging clean empty public_html folder inside xampp/htdocs...');
+  archive.append('', { name: 'xampp/htdocs/public_html/.gitkeep' });
 
   archive.append('', { name: 'xampp/tmp/.gitkeep' });
 
@@ -193,11 +205,14 @@ async function main() {
   console.log('[Step 3/4] Applying Authenticode digital signature...');
   try {
     const signScript = `
-      $cert = Get-Item "Cert:\\CurrentUser\\My\\DB9AA37D13EE2A44B5607FDE15B974466930D446" -ErrorAction SilentlyContinue;
+      $cert = Get-Item "Cert:\\CurrentUser\\My\\FF64655A59292186DB955542DC9D1C16855442E0" -ErrorAction SilentlyContinue;
+      if (-not $cert) {
+        $cert = Get-Item "Cert:\\CurrentUser\\My\\DB9AA37D13EE2A44B5607FDE15B974466930D446" -ErrorAction SilentlyContinue;
+      }
       if ($cert) {
         Set-AuthenticodeSignature -FilePath "${outputExePath}" -Certificate $cert | Out-Null;
         Set-AuthenticodeSignature -FilePath "${cPanelExePath}" -Certificate $cert | Out-Null;
-        Write-Host "[Signature] Successfully signed cPanel-Localhost.exe and cPanel.exe with Authenticode certificate.";
+        Write-Host "[Signature] Successfully signed cPanel-Localhost.exe and cPanel.exe with $($cert.Subject)";
       } else {
         Write-Host "[Signature] Code signing certificate not found, skipping signature.";
       }

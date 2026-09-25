@@ -8,10 +8,16 @@ const config = require('../config');
 // Safe root path: default to C:\xampp\htdocs
 const ROOT_PATH = path.resolve(config.xampp.htdocs);
 
-// Ensure ROOT_PATH exists
+// Ensure ROOT_PATH and clean public_html exist
 if (!fs.existsSync(ROOT_PATH)) {
   try {
     fs.mkdirSync(ROOT_PATH, { recursive: true });
+  } catch (e) {}
+}
+const PUBLIC_HTML_PATH = path.join(ROOT_PATH, 'public_html');
+if (!fs.existsSync(PUBLIC_HTML_PATH)) {
+  try {
+    fs.mkdirSync(PUBLIC_HTML_PATH, { recursive: true });
   } catch (e) {}
 }
 

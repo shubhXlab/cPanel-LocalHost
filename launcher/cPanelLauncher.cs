@@ -88,6 +88,7 @@ namespace CPanelLocalhost
                 nodeExe = ResolveNodeExecutable();
                 Log("Resolved Node Executable: " + nodeExe);
 
+                EnsureXamppAndPublicHtml();
                 InitializeTray();
                 StartServer();
 
@@ -348,6 +349,46 @@ namespace CPanelLocalhost
                 Process.Start(new ProcessStartInfo("explorer.exe", "\"" + publicHtml + "\"") { UseShellExecute = true });
             }
             catch { }
+        }
+
+        private void EnsureXamppAndPublicHtml()
+        {
+            try
+            {
+                // Check if xampp exists in appDir or C:\xampp, if not create that and then public_html
+                string portableXampp = Path.Combine(appDir, "xampp");
+                if (Directory.Exists(portableXampp))
+                {
+                    string htdocs = Path.Combine(portableXampp, "htdocs");
+                    if (!Directory.Exists(htdocs)) Directory.CreateDirectory(htdocs);
+                    string publicHtml = Path.Combine(htdocs, "public_html");
+                    if (!Directory.Exists(publicHtml)) Directory.CreateDirectory(publicHtml);
+                    Log("Verified portable xampp/htdocs/public_html exists: " + publicHtml);
+                }
+
+                if (Directory.Exists(@"C:\xampp"))
+                {
+                    string extHtdocs = @"C:\xampp\htdocs";
+                    if (!Directory.Exists(extHtdocs)) Directory.CreateDirectory(extHtdocs);
+                    string extPublicHtml = Path.Combine(extHtdocs, "public_html");
+                    if (!Directory.Exists(extPublicHtml)) Directory.CreateDirectory(extPublicHtml);
+                    Log("Verified C:\\xampp\\htdocs\\public_html exists: " + extPublicHtml);
+                }
+                else if (!Directory.Exists(portableXampp))
+                {
+                    // Neither exists: create portable xampp structure
+                    Directory.CreateDirectory(portableXampp);
+                    string htdocs = Path.Combine(portableXampp, "htdocs");
+                    Directory.CreateDirectory(htdocs);
+                    string publicHtml = Path.Combine(htdocs, "public_html");
+                    Directory.CreateDirectory(publicHtml);
+                    Log("Created portable xampp/htdocs/public_html: " + publicHtml);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("EnsureXamppAndPublicHtml notice: " + ex.Message);
+            }
         }
 
         private void StartServices()

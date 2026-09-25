@@ -22,8 +22,27 @@ function detectXamppPath() {
   return 'C:\\xampp'; // Default fallback
 }
 
+// Ensure xampp root, htdocs, and clean empty public_html exist on first run
+function ensureXamppDirectories(root) {
+  if (!root) return;
+  try {
+    if (!fs.existsSync(root)) {
+      fs.mkdirSync(root, { recursive: true });
+    }
+    const htdocs = path.join(root, 'htdocs');
+    if (!fs.existsSync(htdocs)) {
+      fs.mkdirSync(htdocs, { recursive: true });
+    }
+    const publicHtml = path.join(htdocs, 'public_html');
+    if (!fs.existsSync(publicHtml)) {
+      fs.mkdirSync(publicHtml, { recursive: true });
+    }
+  } catch (e) {}
+}
+
 // Automatically patch portable Apache, MySQL, and PHP paths to current location
 function relocateXamppPaths(root) {
+  ensureXamppDirectories(root);
   if (!fs.existsSync(root) || root.toLowerCase() === 'c:\\xampp') return;
 
   const forwardRoot = root.replace(/\\/g, '/');
@@ -34,7 +53,9 @@ function relocateXamppPaths(root) {
     path.join(root, 'tmp'),
     path.join(root, 'apache', 'logs'),
     path.join(root, 'php', 'logs'),
-    path.join(root, 'mysql', 'data')
+    path.join(root, 'mysql', 'data'),
+    path.join(root, 'htdocs'),
+    path.join(root, 'htdocs', 'public_html')
   ];
   for (const d of dirsToEnsure) {
     if (!fs.existsSync(d)) {
@@ -204,6 +225,10 @@ function relocateXamppPaths(root) {
 }
 
 const xamppRoot = detectXamppPath();
+ensureXamppDirectories(xamppRoot);
+if (fs.existsSync('C:\\xampp')) {
+  ensureXamppDirectories('C:\\xampp');
+}
 relocateXamppPaths(xamppRoot);
 
 const xamppConfig = {

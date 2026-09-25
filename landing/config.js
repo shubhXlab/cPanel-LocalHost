@@ -5,7 +5,7 @@
 const CPANEL_CONFIG = {
   appName: "cPanel Localhost",
   tagline: "The Sovereign Local Web Hosting Control Panel for Developers & AI Agents",
-  version: "1.0.0",
+  version: "1.3.0",
   releaseDate: "March 2026",
   license: "MIT License",
   author: "Shubham Ramjiyani",
@@ -19,19 +19,19 @@ const CPANEL_CONFIG = {
     windowsExe: {
       filename: "cPanel-Localhost.exe",
       url: "cPanel-Localhost.exe",
-      size: "132 MB",
+      size: "134 MB",
       badge: "Standalone Executable",
       os: "Windows 10 / 11 (64-bit)",
-      sha256: "CBD36CC625AD2804FDB3640B22E2B899E34BDD7FBB959CFC3BC6642CB48DCF1B",
+      sha256: "49B726FBB092F12621EFAE7A3AEAE1F0D6B40D2D4523B50C415AE33758C5F323",
       recommended: true
     },
     setupBundle: {
       filename: "Setup-cPanel-Localhost.zip",
       url: "Setup-cPanel-Localhost.zip",
-      size: "130 MB",
+      size: "132 MB",
       badge: "Setup Bundle",
       os: "Windows 10 / 11 (64-bit)",
-      sha256: "BFEACA74C0E16FF44A6C3A661B2FA6A44CD36C400A86C4CFE05801ED3D1D9582",
+      sha256: "BE3498594F0536B3B3D7E13B4A87DD9BB932017B673158A6386C06D4174669DB",
       recommended: false
     },
     powershellInstall: `irm https://localhost.shubhxlab.xyz/cPanel-Localhost.exe -OutFile cPanel.exe; .\\cPanel.exe`
